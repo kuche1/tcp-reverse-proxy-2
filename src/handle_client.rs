@@ -323,7 +323,14 @@ pub fn main(
                     ) {
                         Ok(v) => v,
                         Err(e) => {
-                            eprintln!("client_stream write error -> {}", e);
+                            if (e.kind() == io::ErrorKind::WouldBlock)
+                                || (e.kind() == io::ErrorKind::Interrupted)
+                            {
+                                // do nothing
+                            } else {
+                                eprintln!("client_stream write error -> {}", e);
+                                client_write_impossible = true;
+                            }
                             break 'scope;
                         }
                     };
