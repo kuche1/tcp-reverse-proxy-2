@@ -86,7 +86,7 @@ fn main() {
                 ip_translated,
                 args.remote_port,
                 tls_config,
-                args.read_write_timeout_ms,
+                args.terminate_after_inactivity_ms,
             )
         });
     }

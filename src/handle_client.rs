@@ -7,7 +7,7 @@ use std::net::Shutdown;
 use std::net::{Ipv4Addr, SocketAddrV4, TcpStream};
 use std::sync::Arc;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 // pub fn main(
 //     mut client_stream: TcpStream,
@@ -241,17 +241,21 @@ pub fn main(
     ip_translated: Ipv4Addr,
     remote_port: u16,
     tls_config: Arc<ServerConfig>,
-    read_write_timeous_ms: Option<u64>,
+    terminate_after_inactivity_ms: u64,
 ) {
-    //// timeout: client
+    //     //// timeout: client
+    //
+    //     let read_write_timeout_ms = match read_write_timeous_ms {
+    //         None => None,
+    //         Some(v) => Some(Duration::from_millis(v)),
+    //     };
+    //
+    //     let _ = client_raw_stream.set_read_timeout(read_write_timeout_ms);
+    //     let _ = client_raw_stream.set_write_timeout(read_write_timeout_ms);
 
-    let read_write_timeout_ms = match read_write_timeous_ms {
-        None => None,
-        Some(v) => Some(Duration::from_millis(v)),
-    };
+    //// inactivity
 
-    let _ = client_raw_stream.set_read_timeout(read_write_timeout_ms);
-    let _ = client_raw_stream.set_write_timeout(read_write_timeout_ms);
+    let terminate_after_inactivity = Duration::from_millis(terminate_after_inactivity_ms);
 
     //// tls
 
@@ -295,10 +299,10 @@ pub fn main(
 
     let mut remote_stream: TcpStream = socket.into();
 
-    //// timeout: remote
-
-    let _ = remote_stream.set_read_timeout(read_write_timeout_ms);
-    let _ = remote_stream.set_write_timeout(read_write_timeout_ms);
+    //     //// timeout: remote
+    //
+    //     let _ = remote_stream.set_read_timeout(read_write_timeout_ms);
+    //     let _ = remote_stream.set_write_timeout(read_write_timeout_ms);
 
     //// make streams nonblocking
 
@@ -336,7 +340,10 @@ pub fn main(
     let mut remote_read_impossible = false;
     let mut remote_write_impossible = false;
 
+    let mut last_activity = Instant::now();
+
     loop {
+        // break: if connection falls apart
         {
             let client_to_remote_impossible = client_read_impossible || remote_write_impossible;
             let remote_to_client_impossible = remote_read_impossible || client_write_impossible;
@@ -398,7 +405,16 @@ pub fn main(
             &mut any_work_done,
         );
 
-        if !any_work_done {
+        if any_work_done {
+            last_activity = Instant::now();
+        } else {
+            // break: in case of inactivity
+            if last_activity.elapsed() >= terminate_after_inactivity {
+                // this is actually not the greatest since it is possible that
+                // a very long blocking took place (see where `any_work_done` is being set)
+                break;
+            }
+
             thread::sleep(NO_WORK_DONE_SLEEP);
         }
     }
