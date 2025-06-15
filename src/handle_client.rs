@@ -89,9 +89,6 @@ pub async fn main(
     }
 
     let mut remote_stream: std::net::TcpStream = socket.into();
-    remote_stream
-        .set_nonblocking(true)
-        .expect("could not make blocking");
     let remote_stream = tokio::net::TcpStream::from_std(remote_stream).unwrap();
 
     let (mut ri, mut wi) = tokio::io::split(client_stream);
