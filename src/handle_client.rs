@@ -367,31 +367,30 @@ pub fn main(
     loop {
         // break: if connection falls apart
         {
-            //// this is more correct but less practical
-            // let client_to_remote_impossible = client_read_impossible || remote_write_impossible;
-            // let remote_to_client_impossible = remote_read_impossible || client_write_impossible;
-            //
+            // this is more correct but less practical
+            let client_to_remote_impossible = client_read_impossible || remote_write_impossible;
+            let remote_to_client_impossible = remote_read_impossible || client_write_impossible;
+
             // if client_to_remote_impossible && remote_to_client_impossible {
+            if client_to_remote_impossible || remote_to_client_impossible {
+                break;
+            }
+
+            //// this is too aggressive and causes the connection to terminate instantly (tested with kf2 webadmin)
+            // // client(read) -> remote(write)
+            // // remote(read) -> client(write)
+            // if client_write_impossible {
             //     break;
             // }
-            //
-            // TODO try `||`
-
-            //// this is less correct but more practical
-            // client(read) -> remote(write)
-            // remote(read) -> client(write)
-            if client_write_impossible {
-                break;
-            }
-            if remote_read_impossible {
-                break;
-            }
-            if remote_write_impossible {
-                break;
-            }
-            if client_read_impossible {
-                break;
-            }
+            // if remote_read_impossible {
+            //     break;
+            // }
+            // if remote_write_impossible {
+            //     break;
+            // }
+            // if client_read_impossible {
+            //     break;
+            // }
         }
 
         // TODO if we could find a way to get rid of those 2, that would be awesome (might be easier than it seems)
