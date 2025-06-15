@@ -151,10 +151,12 @@ use std::time::Duration;
 const NO_WORK_DONE_SLEEP: Duration = Duration::from_millis(10);
 // TODO ideally we would use `epoll` or something like that
 
+const BUFSIZE: usize = 1024 * 8;
+
 fn stream_read<S: Read>(
     stream: &mut S,
     read_impossible: &mut bool,
-    buffer: &mut [u8; 8192],
+    buffer: &mut [u8; BUFSIZE],
     buffer_start: &mut usize,
     buffer_end: &mut usize,
     any_work_done: &mut bool,
@@ -193,7 +195,7 @@ fn stream_read<S: Read>(
 fn stream_write<S: Write>(
     stream: &mut S,
     write_impossible: &mut bool,
-    buffer: &mut [u8; 8192],
+    buffer: &mut [u8; BUFSIZE],
     buffer_start: &mut usize,
     buffer_end: &mut usize,
     any_work_done: &mut bool,
@@ -314,15 +316,13 @@ pub fn main(
     // TODO
     // it is possible to optimise the shutdown calls (remember: they need to be followed by flush (not sure if this is 100% true))
 
-    // TODO make this buffer size a constant
-
-    let mut data_client_to_remote = [0u8; 8192];
+    let mut data_client_to_remote = [0u8; BUFSIZE];
     let mut data_client_to_remote_start = 0;
     let mut data_client_to_remote_end = 0;
     let mut client_read_impossible = false;
     let mut client_write_impossible = false;
 
-    let mut data_remote_to_client = [0u8; 8192];
+    let mut data_remote_to_client = [0u8; BUFSIZE];
     let mut data_remote_to_client_start = 0;
     let mut data_remote_to_client_end = 0;
     let mut remote_read_impossible = false;
