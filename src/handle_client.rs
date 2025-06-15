@@ -441,6 +441,8 @@ pub fn main(
         }
     }
 
+    dbg!("main loop broken");
+
     //// TODO the flushing is not great, let's make sure all is flushed
 
     //// flush: remote -> client
