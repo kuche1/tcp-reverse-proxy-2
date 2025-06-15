@@ -147,7 +147,8 @@ use std::thread;
 //     //     let _ = remote_to_client.join();
 // }
 
-//// adsfsdfXTREWC#$WFC#
+//// TODO piece of shit code
+
 use std::io::ErrorKind;
 use std::time::Duration;
 
