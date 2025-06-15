@@ -60,11 +60,12 @@ fn main() {
         };
         let ip_original = ip_original.ip();
 
-        println!("new connection from {}", ip_original);
-
         let ip_translated = ip_translator.translate(ip_original);
 
-        println!("use translated ip {}", ip_translated);
+        println!(
+            "new connection from {}; using translated ip {}",
+            ip_original, ip_translated
+        );
 
         thread::spawn(move || handle_client::main(stream, ip_translated, args.remote_port));
     }
