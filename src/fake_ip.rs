@@ -1,9 +1,13 @@
-use std::net::Ipv4Addr;
+use std::collections::HashMap;
+use std::net::{IpAddr, Ipv4Addr};
 
+// TODO rename to IpTranslator
 pub struct FakeIpGenerator {
     ip_emergency: u32, // used when out of IPs
     ip_last_used: u32,
     ip_last_available: u32,
+
+    ip_map: HashMap<IpAddr, Ipv4Addr>,
 }
 
 impl FakeIpGenerator {
@@ -14,10 +18,12 @@ impl FakeIpGenerator {
             ip_emergency: ip,
             ip_last_used: ip,
             ip_last_available: (127 << 24) | (255 << 16) | (255 << 8) | (254 << 0), // 127.255.255.255 is broadcast
+
+            ip_map: HashMap::new(),
         }
     }
 
-    pub fn gen_next(&mut self) -> Ipv4Addr {
+    fn gen_next(&mut self) -> Ipv4Addr {
         let ip_u32 = 'ip_u32: {
             let current = self.ip_last_used + 1;
             if current > self.ip_last_available {
@@ -31,5 +37,18 @@ impl FakeIpGenerator {
         };
 
         Ipv4Addr::from(ip_u32)
+    }
+
+    pub fn get(&mut self, original_ip: IpAddr) -> Ipv4Addr {
+        match self.ip_map.get(&original_ip) {
+            Some(v) => return *v,
+            None => {}
+        };
+
+        let new_ip = self.gen_next();
+
+        self.ip_map.insert(original_ip, new_ip);
+
+        new_ip
     }
 }

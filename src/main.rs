@@ -5,8 +5,6 @@ mod log;
 use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::process;
-use std::thread;
-use std::time::Duration;
 
 // TODO get rid of this Result
 fn main() -> std::io::Result<()> {
@@ -18,12 +16,6 @@ fn main() -> std::io::Result<()> {
     //// create fake ip giver
 
     let mut ip_generator = fake_ip::FakeIpGenerator::new();
-
-    loop {
-        let ip = ip_generator.gen_next();
-        println!("ip {}", ip);
-        thread::sleep(Duration::from_millis(100));
-    }
 
     //// bind
 
@@ -58,6 +50,10 @@ fn main() -> std::io::Result<()> {
         let ip = stream.peer_addr()?.ip();
 
         println!("new connection from {}", ip);
+
+        let ip_faked = ip_generator.get(ip);
+
+        println!("use fake ip {}", ip_faked);
 
         // echo server
         let mut buffer = [0; 512];
