@@ -154,8 +154,8 @@ use std::time::Duration;
 
 pub fn main(
     mut client_stream: TcpStream,
-    _ip_translated: Ipv4Addr,
-    _remote_port: u16,
+    ip_translated: Ipv4Addr,
+    remote_port: u16,
     tls_config: Arc<ServerConfig>,
 ) {
     // // Set timeouts before using the stream
@@ -163,29 +163,58 @@ pub fn main(
     // let _ = client_stream.set_read_timeout(Some(timeout_duration));
     // let _ = client_stream.set_write_timeout(Some(timeout_duration));
 
-    // Create TLS connection
+    //// tls
+
     let mut server_conn = match ServerConnection::new(tls_config) {
-        Ok(conn) => conn,
+        Ok(v) => v,
         Err(e) => {
-            eprintln!("TLS connection creation failed: {}", e);
+            eprintln!("could not construct tls connection struct -> {}", e);
             return;
         }
     };
 
-    // Perform TLS handshake
     if let Err(e) = server_conn.complete_io(&mut client_stream) {
-        eprintln!("TLS handshake failed: {}", e);
+        eprintln!("tls handshake failed -> {}", e);
         return;
     }
 
-    // Connect to backend server
-    let mut backend = match TcpStream::connect("127.0.0.1:32850") {
-        Ok(stream) => stream,
+    //// connect to remote
+
+    let local_addr = SocketAddrV4::new(ip_translated, 0);
+
+    let remote_ip = Ipv4Addr::new(127, 0, 0, 1);
+    let remote_addr = SocketAddrV4::new(remote_ip, remote_port);
+
+    let socket = match Socket::new(Domain::IPV4, Type::STREAM, None) {
+        Ok(v) => v,
         Err(e) => {
-            eprintln!("Backend connection failed: {}", e);
+            eprintln!("could not create socket -> {}", e);
             return;
         }
     };
+
+    if let Err(e) = socket.bind(&SockAddr::from(local_addr)) {
+        eprintln!("could not bind socket -> {}", e);
+        return;
+    }
+
+    if let Err(e) = socket.connect(&SockAddr::from(remote_addr)) {
+        eprintln!("could not connect to remote host {} -> {}", remote_addr, e);
+        return;
+    }
+
+    let mut backend: TcpStream = socket.into();
+    // TODO rename to `remote_stream`
+
+    // let mut backend = match TcpStream::connect("127.0.0.1:32850") {
+    //     Ok(stream) => stream,
+    //     Err(e) => {
+    //         eprintln!("Backend connection failed: {}", e);
+    //         return;
+    //     }
+    // };
+
+    ////
 
     // // Set backend timeouts
     // let _ = backend.set_read_timeout(Some(timeout_duration));
