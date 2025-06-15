@@ -264,6 +264,8 @@ pub fn main(
 
     //// tls
 
+    dbg!("setup tls");
+
     let mut server_conn = match ServerConnection::new(tls_config) {
         Ok(v) => v,
         Err(e) => {
@@ -278,6 +280,8 @@ pub fn main(
     }
 
     //// connect to remote
+
+    dbg!("connect to remote");
 
     let local_addr = SocketAddrV4::new(ip_translated, 0);
 
@@ -310,6 +314,8 @@ pub fn main(
     //     let _ = remote_stream.set_write_timeout(read_write_timeout_ms);
 
     //// make streams nonblocking
+
+    dbg!("make streams nonblocking");
 
     if let Err(e) = client_raw_stream.set_nonblocking(true) {
         eprintln!("could not make client nonblocking -> {}", e);
