@@ -1,10 +1,11 @@
 mod cmdline;
+mod handle_client;
 mod ip_translator;
 mod log;
 
 use crate::ip_translator::*;
 
-use std::io::{Read, Write};
+// use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::process;
 
@@ -57,10 +58,12 @@ fn main() -> std::io::Result<()> {
 
         println!("use translated ip {}", ip_translated);
 
-        // echo server
-        let mut buffer = [0; 512];
-        let n = stream.read(&mut buffer)?;
-        stream.write_all(&buffer[..n])?;
+        handle_client::main(stream, ip_translated);
+
+        // // echo server
+        // let mut buffer = [0; 512];
+        // let n = stream.read(&mut buffer)?;
+        // stream.write_all(&buffer[..n])?;
     }
 
     //// return
