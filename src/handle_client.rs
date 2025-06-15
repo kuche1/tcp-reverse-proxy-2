@@ -331,7 +331,7 @@ pub fn main(
         return;
     }
 
-    if let Err(e) = socket.set_nonblocking(true) {
+    if let Err(e) = remote_stream.set_nonblocking(true) {
         eprintln!("could not make remote nonblocking -> {}", e);
         return;
     }
