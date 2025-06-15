@@ -5,6 +5,7 @@ use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::process;
 
+// TODO get rid of this Result
 fn main() -> std::io::Result<()> {
     let args = cmdline::main();
     println!("{:?}", args);
