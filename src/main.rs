@@ -8,14 +8,8 @@ mod log;
 
 use crate::ip_translator::*;
 
-// cargo add rustls_pemfile
-// cargo add rustls
-use rustls::{ServerConfig, ServerConnection, StreamOwned};
-use std::fs::File;
-use std::io::BufReader;
 use std::net::TcpListener;
 use std::process;
-use std::sync::Arc;
 use std::thread;
 
 fn main() {
@@ -24,52 +18,9 @@ fn main() {
     let args = cmdline::main();
     println!("{:?}", args);
 
-    //// open encryption-related files
+    //// create ip translator
 
-    let cert_file = &mut BufReader::new(match File::open(&args.cert_file) {
-        Ok(v) => v,
-        Err(e) => {
-            log::err(
-                &args.error_folder,
-                &format!("could not open cert file `{}` -> {}", args.cert_file, e),
-            );
-            process::exit(1);
-        }
-    });
-
-    let key_file = &mut BufReader::new(match File::open(&args.key_file) {
-        Ok(v) => v,
-        Err(e) => {
-            log::err(
-                &args.error_folder,
-                &format!("could not open key file `{}` -> {}", args.key_file, e),
-            );
-            process::exit(1);
-        }
-    });
-
-    // TODO get rid of the unwrap
-    let cert_chain: Vec<_> = rustls_pemfile::certs(cert_file)
-        .collect::<Result<Vec<_>, _>>()
-        .unwrap()
-        .into_iter()
-        .map(rustls::pki_types::CertificateDer::from)
-        .collect();
-
-    // TODO get rid of the unwrap
-    let mut keys: Vec<_> = rustls_pemfile::pkcs8_private_keys(key_file)
-        .collect::<Result<Vec<_>, _>>()
-        .unwrap();
-
-    let key = rustls::pki_types::PrivateKeyDer::from(keys.remove(0));
-
-    // TODO get rid of the unwrap
-    let tls_config = Arc::new(
-        ServerConfig::builder()
-            .with_no_client_auth()
-            .with_single_cert(cert_chain, key)
-            .unwrap(),
-    );
+    let mut ip_translator = IpTranslator::new();
 
     //// bind
 
@@ -87,10 +38,6 @@ fn main() {
         }
     };
     println!("trying to bind to address {} -> done!", addr);
-
-    //// create ip translator
-
-    let mut ip_translator = IpTranslator::new();
 
     //// handle new connections
 
@@ -120,16 +67,6 @@ fn main() {
             ip_original, ip_translated
         );
 
-        let mut tls_conn = match ServerConnection::new(tls_config.clone()) {
-            Ok(v) => v,
-            Err(e) => {
-                eprintln!("could not create new TLS connection -> {}", e);
-                continue;
-            }
-        };
-
-        let mut tls_stream = StreamOwned::new(tls_conn, stream);
-
-        thread::spawn(move || handle_client::main(tls_stream, ip_translated, args.remote_port));
+        thread::spawn(move || handle_client::main(stream, ip_translated, args.remote_port));
     }
 }

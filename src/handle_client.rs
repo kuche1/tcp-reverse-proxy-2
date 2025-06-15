@@ -1,16 +1,10 @@
-use rustls::{ServerConnection, StreamOwned};
 use socket2::{Domain, SockAddr, Socket, Type}; // cargo add socket2
 use std::io;
 use std::net::Shutdown;
 use std::net::{Ipv4Addr, SocketAddrV4, TcpStream};
 use std::thread;
 
-// `client_stream` used to be a `TcpStream`
-pub fn main(
-    mut client_stream: StreamOwned<ServerConnection, std::net::TcpStream>,
-    ip_translated: Ipv4Addr,
-    remote_port: u16,
-) {
+pub fn main(mut client_stream: TcpStream, ip_translated: Ipv4Addr, remote_port: u16) {
     let local_addr = SocketAddrV4::new(ip_translated, 0);
 
     let remote_ip = Ipv4Addr::new(127, 0, 0, 1);
@@ -38,7 +32,7 @@ pub fn main(
 
     //// forward data
 
-    let mut client_stream_clone = match client_stream.sock.try_clone() {
+    let mut client_stream_clone = match client_stream.try_clone() {
         Ok(s) => s,
         Err(e) => {
             eprintln!("could not clone client_stream -> {}", e);
