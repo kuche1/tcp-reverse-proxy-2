@@ -328,15 +328,22 @@ pub fn main(
     let mut remote_write_impossible = false;
 
     loop {
-        let mut any_work_done = false;
+        {
+            let client_to_remote_impossible = client_read_impossible || remote_write_impossible;
+            let remote_to_client_impossible = remote_read_impossible || client_write_impossible;
 
+            if client_to_remote_impossible && remote_to_client_impossible {
+                break;
+            }
+        }
+
+        // TODO if we could find a way to get rid of those 2, that would be awesome (might be easier than it seems)
         if data_client_to_remote_end > 0 {
             if remote_write_impossible {
                 data_client_to_remote_start = 0;
                 data_client_to_remote_end = 0;
             }
         }
-
         if data_remote_to_client_end > 0 {
             if client_write_impossible {
                 data_remote_to_client_start = 0;
@@ -344,30 +351,7 @@ pub fn main(
             }
         }
 
-        if (data_client_to_remote_end <= 0) && (data_remote_to_client_end <= 0) {
-            // I think this covers all cases
-            // looks a but stupid, but I can't figure out a better (more correct) way
-            if client_read_impossible && client_write_impossible {
-                break;
-            }
-            if remote_read_impossible && remote_write_impossible {
-                break;
-            }
-            if client_read_impossible && remote_read_impossible {
-                break;
-            }
-            if client_write_impossible && remote_write_impossible {
-                break;
-            }
-        }
-
-        // the remote has nothing more to send to the client
-        // note: this single check makes the reverse proxy SO MUCH BETTER
-        if remote_read_impossible {
-            if data_remote_to_client_end <= 0 {
-                break;
-            }
-        }
+        let mut any_work_done = false;
 
         stream_write(
             &mut remote_stream,
