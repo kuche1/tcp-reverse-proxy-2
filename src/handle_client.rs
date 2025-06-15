@@ -241,7 +241,7 @@ pub fn main(
     ip_translated: Ipv4Addr,
     remote_port: u16,
     tls_config: Arc<ServerConfig>,
-    terminate_after_inactivity_ms: u64,
+    terminate_after_inactivity_ms: Option<u64>,
 ) {
     //     //// timeout: client
     //
@@ -255,7 +255,10 @@ pub fn main(
 
     //// inactivity
 
-    let terminate_after_inactivity = Duration::from_millis(terminate_after_inactivity_ms);
+    let terminate_after_inactivity = match terminate_after_inactivity_ms {
+        None => None,
+        Some(v) => Some(Duration::from_millis(v)),
+    };
 
     //// tls
 
@@ -348,6 +351,7 @@ pub fn main(
             let client_to_remote_impossible = client_read_impossible || remote_write_impossible;
             let remote_to_client_impossible = remote_read_impossible || client_write_impossible;
 
+            // TODO this is more correct, but it would be more practical if we closed the connection if `remote_to_client_impossible`
             if client_to_remote_impossible && remote_to_client_impossible {
                 break;
             }
@@ -409,7 +413,7 @@ pub fn main(
             last_activity = Instant::now();
         } else {
             // break: in case of inactivity
-            if last_activity.elapsed() >= terminate_after_inactivity {
+            if Some(last_activity.elapsed()) >= terminate_after_inactivity {
                 // this is actually not the greatest since it is possible that
                 // a very long blocking took place (see where `any_work_done` is being set)
                 break;

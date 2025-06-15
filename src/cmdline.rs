@@ -27,7 +27,7 @@ pub struct Args {
 
     /// Read/write timeout
     #[arg(long)]
-    pub terminate_after_inactivity_ms: u64,
+    pub terminate_after_inactivity_ms: Option<u64>,
 }
 
 pub fn main() -> Args {
