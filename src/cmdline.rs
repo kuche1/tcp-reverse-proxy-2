@@ -15,7 +15,7 @@ pub struct Args {
 
     /// Server port
     #[arg(long)]
-    pub server_port: u16,
+    pub remote_port: u16,
     //// TODO delete all of this
     //     /// At what hour the restart is going to occur, for example 15 for 15:00
     //     #[arg(short, long, default_value_t = 4)]

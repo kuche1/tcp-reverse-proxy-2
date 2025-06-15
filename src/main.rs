@@ -63,6 +63,6 @@ fn main() {
 
         println!("use translated ip {}", ip_translated);
 
-        thread::spawn(move || handle_client::main(stream, ip_translated, args.server_port));
+        thread::spawn(move || handle_client::main(stream, ip_translated, args.remote_port));
     }
 }
