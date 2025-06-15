@@ -6,7 +6,8 @@ use std::io::{Read, Write};
 use std::net::Shutdown;
 use std::net::{Ipv4Addr, SocketAddrV4, TcpStream};
 use std::sync::Arc;
-use std::thread;
+// use std::thread;
+use std::time::Duration;
 
 // pub fn main(
 //     mut client_stream: TcpStream,
@@ -147,21 +148,19 @@ use std::thread;
 //     //     let _ = remote_to_client.join();
 // }
 
-//// TODO piece of shit code
-
-use std::time::Duration;
+//// TODO vvv piece of shit code vvv
 
 // TODO also provide the client ip
 //  then make a "title" that contains both, so that error printing is better
 pub fn main(
-    mut client_stream: TcpStream,
+    mut client_raw_stream: TcpStream,
     ip_translated: Ipv4Addr,
     remote_port: u16,
     tls_config: Arc<ServerConfig>,
 ) {
     // let timeout_duration = Duration::from_secs(30);
-    // let _ = client_stream.set_read_timeout(Some(timeout_duration));
-    // let _ = client_stream.set_write_timeout(Some(timeout_duration));
+    // let _ = client_raw_stream.set_read_timeout(Some(timeout_duration));
+    // let _ = client_raw_stream.set_write_timeout(Some(timeout_duration));
 
     //// tls
 
@@ -173,7 +172,7 @@ pub fn main(
         }
     };
 
-    if let Err(e) = server_conn.complete_io(&mut client_stream) {
+    if let Err(e) = server_conn.complete_io(&mut client_raw_stream) {
         eprintln!("tls handshake failed -> {}", e);
         return;
     }
@@ -210,7 +209,7 @@ pub fn main(
     // let _ = remote_stream.set_read_timeout(Some(timeout_duration));
     // let _ = remote_stream.set_write_timeout(Some(timeout_duration));
 
-    if let Err(e) = client_stream.set_nonblocking(true) {
+    if let Err(e) = client_raw_stream.set_nonblocking(true) {
         eprintln!("Failed to set client nonblocking: {}", e);
         return;
     }
@@ -219,6 +218,10 @@ pub fn main(
         eprintln!("Failed to set remote_stream nonblocking: {}", e);
         return;
     }
+
+    //// wrap client
+
+    let mut client_stream = rustls::Stream::new(&mut server_conn, &mut client_raw_stream);
 
     //// forward data
 
@@ -230,10 +233,7 @@ pub fn main(
     while !client_closed || !remote_closed {
         // client -> remote
         if !client_closed {
-            // Create a new TLS stream for each operation to limit borrow scope // TODO this is dumb
-            let mut tls_stream = rustls::Stream::new(&mut server_conn, &mut client_stream);
-
-            match tls_stream.read(&mut client_buffer) {
+            match client_stream.read(&mut client_buffer) {
                 Ok(0) => {
                     client_closed = true;
                     let _ = remote_stream.shutdown(Shutdown::Write);
@@ -258,24 +258,20 @@ pub fn main(
 
         // remote -> client
         if !remote_closed {
-            // Create a new TLS stream for each operation to limit borrow scope // TODO this is dumb
-            let mut tls_stream = rustls::Stream::new(&mut server_conn, &mut client_stream);
-
             match remote_stream.read(&mut remote_buffer) {
                 Ok(0) => {
                     remote_closed = true;
-                    // Use the client_stream directly since TLS stream is out of scope // TODO what the fuck???? it's not out of scope
-                    let _ = client_stream.shutdown(Shutdown::Write);
+                    let _ = client_stream.sock.shutdown(Shutdown::Write);
                 }
                 Ok(n) => {
-                    if let Err(e) = tls_stream.write_all(&remote_buffer[..n]) {
+                    if let Err(e) = client_stream.write_all(&remote_buffer[..n]) {
                         // TODO and what if we write only half of the data ?
                         if e.kind() != io::ErrorKind::WouldBlock {
                             eprintln!("client write error -> {}", e);
                             break;
                         }
                     }
-                    if let Err(e) = tls_stream.flush() {
+                    if let Err(e) = client_stream.flush() {
                         eprintln!("flush error -> {}", e);
                         break;
                     }
@@ -297,7 +293,7 @@ pub fn main(
 
     // Send TLS close_notify alert
     server_conn.send_close_notify();
-    if let Err(e) = server_conn.complete_io(&mut client_stream) {
+    if let Err(e) = server_conn.complete_io(&mut client_raw_stream) {
         eprintln!("failed to send TLS close_notify -> {}", e);
     }
 
@@ -305,7 +301,7 @@ pub fn main(
         eprintln!("remote shutdown error -> {}", e);
     }
 
-    if let Err(e) = client_stream.shutdown(Shutdown::Both) {
+    if let Err(e) = client_raw_stream.shutdown(Shutdown::Both) {
         eprintln!("client shutdown error -> {}", e);
     }
 
