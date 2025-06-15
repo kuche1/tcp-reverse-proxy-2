@@ -1,3 +1,6 @@
+// TODO
+// make the connection encrypted
+
 mod cmdline;
 mod handle_client;
 mod ip_translator;
