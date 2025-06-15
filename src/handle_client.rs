@@ -158,9 +158,12 @@ pub fn main(
     remote_port: u16,
     tls_config: Arc<ServerConfig>,
 ) {
+    //// set read/write timeout
     // let timeout_duration = Duration::from_secs(30);
     // let _ = client_raw_stream.set_read_timeout(Some(timeout_duration));
     // let _ = client_raw_stream.set_write_timeout(Some(timeout_duration));
+    // let _ = remote_stream.set_read_timeout(Some(timeout_duration));
+    // let _ = remote_stream.set_write_timeout(Some(timeout_duration));
 
     //// tls
 
@@ -205,9 +208,6 @@ pub fn main(
     let mut remote_stream: TcpStream = socket.into();
 
     //// make streams nonblocking
-
-    // let _ = remote_stream.set_read_timeout(Some(timeout_duration));
-    // let _ = remote_stream.set_write_timeout(Some(timeout_duration));
 
     if let Err(e) = client_raw_stream.set_nonblocking(true) {
         eprintln!("Failed to set client nonblocking: {}", e);
