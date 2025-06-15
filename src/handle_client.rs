@@ -210,12 +210,12 @@ pub fn main(
     //// make streams nonblocking
 
     if let Err(e) = client_raw_stream.set_nonblocking(true) {
-        eprintln!("Failed to set client nonblocking: {}", e);
+        eprintln!("could not make client nonblocking -> {}", e);
         return;
     }
 
     if let Err(e) = remote_stream.set_nonblocking(true) {
-        eprintln!("Failed to set remote_stream nonblocking: {}", e);
+        eprintln!("could not make remote nonblocking -> {}", e);
         return;
     }
 
