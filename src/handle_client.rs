@@ -348,11 +348,16 @@ pub fn main(
     loop {
         // break: if connection falls apart
         {
-            let client_to_remote_impossible = client_read_impossible || remote_write_impossible;
+            // let client_to_remote_impossible = client_read_impossible || remote_write_impossible;
             let remote_to_client_impossible = remote_read_impossible || client_write_impossible;
 
-            // TODO this is more correct, but it would be more practical if we closed the connection if `remote_to_client_impossible`
-            if client_to_remote_impossible && remote_to_client_impossible {
+            // // this is more correct
+            // if client_to_remote_impossible && remote_to_client_impossible {
+            //     break;
+            // }
+
+            // but this is more practical
+            if remote_to_client_impossible {
                 break;
             }
         }
