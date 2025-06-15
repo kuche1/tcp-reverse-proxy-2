@@ -371,8 +371,8 @@ pub fn main(
             let client_to_remote_impossible = client_read_impossible || remote_write_impossible;
             let remote_to_client_impossible = remote_read_impossible || client_write_impossible;
 
-            // if client_to_remote_impossible && remote_to_client_impossible {
-            if client_to_remote_impossible || remote_to_client_impossible {
+            if client_to_remote_impossible && remote_to_client_impossible {
+                // if client_to_remote_impossible || remote_to_client_impossible {
                 break;
             }
 
