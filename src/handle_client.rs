@@ -305,13 +305,15 @@ pub fn main(
         return;
     }
 
-    dbg!("connect socket");
+    dbg!("connect socket: working...");
 
     // making the socket nonblocking before connecting is a bad idea
     if let Err(e) = socket.connect(&SockAddr::from(remote_addr)) {
         eprintln!("could not connect to remote host {} -> {}", remote_addr, e);
         return;
     }
+
+    dbg!("connect socket: done!");
 
     dbg!("convert into remote_stream");
 
@@ -445,7 +447,7 @@ pub fn main(
         );
 
         if any_work_done {
-            dbg!("work done !");
+            // dbg!("work done !");
             last_activity = Instant::now();
         } else {
             // break: in case of inactivity
