@@ -385,10 +385,8 @@ pub fn main(
         std::thread::sleep(Duration::from_millis(10));
     }
 
-    // Graceful shutdown sequence
-    println!("Initiating graceful shutdown...");
+    println!("initiating graceful shutdown...");
 
-    // Send TLS close_notify alert
     server_conn.send_close_notify();
     if let Err(e) = server_conn.complete_io(&mut client_raw_stream) {
         eprintln!("failed to send_close_notify client -> {}", e);
@@ -402,5 +400,5 @@ pub fn main(
         eprintln!("client shutdown error -> {}", e);
     }
 
-    println!("Connection closed gracefully");
+    println!("connection closed gracefully");
 }
