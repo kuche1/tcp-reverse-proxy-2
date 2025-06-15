@@ -225,61 +225,150 @@ pub fn main(
 
     //// forward data
 
-    // TODO make this buffer size a constant
-    let mut data_buffer = [0u8; 8192];
-    let mut client_closed = false;
-    let mut remote_closed = false;
+    // TODO some code for
+    //let _ = remote_stream.shutdown(Shutdown::Write);
+    //if let Err(e) = client_stream.flush() {
 
-    while !client_closed || !remote_closed {
-        // client -> remote
-        if !client_closed {
-            match client_stream.read(&mut data_buffer) {
-                Ok(0) => {
-                    client_closed = true;
-                    let _ = remote_stream.shutdown(Shutdown::Write);
-                }
-                Ok(n) => {
-                    // TODO and what if we write only half of the data ?
-                    if let Err(e) = remote_stream.write_all(&data_buffer[..n]) {
-                        if e.kind() != io::ErrorKind::WouldBlock {
-                            eprintln!("remote write error -> {}", e);
-                            break;
+    // TODO make this buffer size a constant
+
+    let mut data_client_to_remote = [0u8; 8192];
+    let mut data_client_to_remote_start = 0;
+    let mut data_client_to_remote_end = 0;
+    let mut client_read_impossible = false;
+    let mut client_write_impossible = false;
+
+    let mut data_remote_to_client = [0u8; 8192];
+    let mut data_remote_to_client_start = 0;
+    let mut data_remote_to_client_end = 0;
+    let mut remote_read_impossible = false;
+    let mut remote_write_impossible = false;
+
+    loop {
+        if data_client_to_remote_end > 0 {
+            if remote_write_impossible {
+                data_client_to_remote_start = 0;
+                data_client_to_remote_end = 0;
+            }
+        }
+
+        if data_remote_to_client_end > 0 {
+            if client_write_impossible {
+                data_remote_to_client_start = 0;
+                data_remote_to_client_end = 0;
+            }
+        }
+
+        if (data_client_to_remote_end <= 0) && (data_remote_to_client_end <= 0) {
+            // I think this covers all cases
+            // looks a but stupid, but I can't figure out a better (more correct) way
+            if client_read_impossible && client_write_impossible {
+                break;
+            }
+            if remote_read_impossible && remote_write_impossible {
+                break;
+            }
+            if client_read_impossible && remote_read_impossible {
+                break;
+            }
+            if client_write_impossible && remote_write_impossible {
+                break;
+            }
+        }
+
+        // TODO too much repetition
+
+        // send: client -> remote
+        if !remote_write_impossible {
+            if data_client_to_remote_end > 0 {
+                'scope: {
+                    let bytes_written = match remote_stream.write(
+                        &data_client_to_remote
+                            [data_client_to_remote_start..data_client_to_remote_end],
+                    ) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            eprintln!("remote_stream write error -> {}", e);
+                            break 'scope;
                         }
+                    };
+                    if bytes_written == 0 {
+                        remote_write_impossible = true;
+                        break 'scope;
                     }
-                    // TODO why are we not flushing like we do with `remote -> client`
-                }
-                Err(e) if e.kind() == io::ErrorKind::WouldBlock => {}
-                Err(e) => {
-                    eprintln!("client read error -> {}", e);
-                    break;
+                    data_client_to_remote_start = bytes_written;
+                    if data_client_to_remote_start >= data_client_to_remote_end {
+                        data_client_to_remote_start = 0;
+                        data_client_to_remote_end = 0;
+                    }
                 }
             }
         }
 
-        // remote -> client
-        if !remote_closed {
-            match remote_stream.read(&mut data_buffer) {
-                Ok(0) => {
-                    remote_closed = true;
-                    let _ = client_stream.sock.shutdown(Shutdown::Write);
-                }
-                Ok(n) => {
-                    if let Err(e) = client_stream.write_all(&data_buffer[..n]) {
-                        // TODO and what if we write only half of the data ?
-                        if e.kind() != io::ErrorKind::WouldBlock {
-                            eprintln!("client write error -> {}", e);
-                            break;
+        // send: remote -> client
+        if !client_write_impossible {
+            if data_remote_to_client_end > 0 {
+                'scope: {
+                    let bytes_written = match client_stream.write(
+                        &data_remote_to_client
+                            [data_remote_to_client_start..data_remote_to_client_end],
+                    ) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            eprintln!("client_stream write error -> {}", e);
+                            break 'scope;
                         }
+                    };
+                    if bytes_written == 0 {
+                        client_write_impossible = true;
+                        break 'scope;
                     }
-                    if let Err(e) = client_stream.flush() {
-                        eprintln!("flush error -> {}", e);
-                        break;
+                    data_remote_to_client_start = bytes_written;
+                    if data_remote_to_client_start >= data_remote_to_client_end {
+                        data_remote_to_client_start = 0;
+                        data_remote_to_client_end = 0;
                     }
                 }
-                Err(e) if e.kind() == io::ErrorKind::WouldBlock => {}
-                Err(e) => {
-                    eprintln!("remote read error -> {}", e);
-                    break;
+            }
+        }
+
+        // read: client
+        if !client_read_impossible {
+            if data_client_to_remote_end <= 0 {
+                'scope: {
+                    let bytes_read = match client_stream.read(&mut data_client_to_remote) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            eprintln!("client_stream read error -> {}", e);
+                            break 'scope;
+                        }
+                    };
+                    if bytes_read == 0 {
+                        client_read_impossible = true;
+                        break 'scope;
+                    }
+                    data_client_to_remote_start = 0;
+                    data_client_to_remote_end = bytes_read;
+                }
+            }
+        }
+
+        // read: remote
+        if !remote_read_impossible {
+            if data_remote_to_client_end <= 0 {
+                'scope: {
+                    let bytes_read = match remote_stream.read(&mut data_remote_to_client) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            eprintln!("remote_stream read error -> {}", e);
+                            break 'scope;
+                        }
+                    };
+                    if bytes_read == 0 {
+                        remote_read_impossible = true;
+                        break 'scope;
+                    }
+                    data_remote_to_client_start = 0;
+                    data_remote_to_client_end = bytes_read;
                 }
             }
         }
@@ -294,7 +383,7 @@ pub fn main(
     // Send TLS close_notify alert
     server_conn.send_close_notify();
     if let Err(e) = server_conn.complete_io(&mut client_raw_stream) {
-        eprintln!("failed to send TLS close_notify -> {}", e);
+        eprintln!("failed to send_close_notify client -> {}", e);
     }
 
     if let Err(e) = remote_stream.shutdown(Shutdown::Both) {
