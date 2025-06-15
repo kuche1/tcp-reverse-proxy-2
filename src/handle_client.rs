@@ -362,42 +362,6 @@ pub fn main(
             }
         }
 
-        // send: client -> remote
-        //         if !remote_write_impossible {
-        //             if data_client_to_remote_end > 0 {
-        //                 'scope: {
-        //                     let bytes_written = match remote_stream.write(
-        //                         &data_client_to_remote
-        //                             [data_client_to_remote_start..data_client_to_remote_end],
-        //                     ) {
-        //                         Ok(v) => v,
-        //                         Err(e) => {
-        //                             if (e.kind() == io::ErrorKind::WouldBlock)
-        //                                 || (e.kind() == io::ErrorKind::Interrupted)
-        //                             {
-        //                                 // do nothing
-        //                             } else {
-        //                                 eprintln!("remote_stream write error -> {}", e);
-        //                                 remote_write_impossible = true;
-        //                             }
-        //                             break 'scope;
-        //                         }
-        //                     };
-        //                     if bytes_written == 0 {
-        //                         remote_write_impossible = true;
-        //                         break 'scope;
-        //                     }
-        //
-        //                     any_work_done = true;
-        //
-        //                     data_client_to_remote_start = bytes_written;
-        //                     if data_client_to_remote_start >= data_client_to_remote_end {
-        //                         data_client_to_remote_start = 0;
-        //                         data_client_to_remote_end = 0;
-        //                     }
-        //                 }
-        //             }
-        //         }
         stream_write(
             &mut remote_stream,
             &mut remote_write_impossible,
@@ -407,42 +371,6 @@ pub fn main(
             &mut any_work_done,
         );
 
-        // send: remote -> client
-        //         if !client_write_impossible {
-        //             if data_remote_to_client_end > 0 {
-        //                 'scope: {
-        //                     let bytes_written = match client_stream.write(
-        //                         &data_remote_to_client
-        //                             [data_remote_to_client_start..data_remote_to_client_end],
-        //                     ) {
-        //                         Ok(v) => v,
-        //                         Err(e) => {
-        //                             if (e.kind() == io::ErrorKind::WouldBlock)
-        //                                 || (e.kind() == io::ErrorKind::Interrupted)
-        //                             {
-        //                                 // do nothing
-        //                             } else {
-        //                                 eprintln!("client_stream write error -> {}", e);
-        //                                 client_write_impossible = true;
-        //                             }
-        //                             break 'scope;
-        //                         }
-        //                     };
-        //                     if bytes_written == 0 {
-        //                         client_write_impossible = true;
-        //                         break 'scope;
-        //                     }
-        //
-        //                     any_work_done = true;
-        //
-        //                     data_remote_to_client_start = bytes_written;
-        //                     if data_remote_to_client_start >= data_remote_to_client_end {
-        //                         data_remote_to_client_start = 0;
-        //                         data_remote_to_client_end = 0;
-        //                     }
-        //                 }
-        //             }
-        //         }
         stream_write(
             &mut client_stream,
             &mut client_write_impossible,
@@ -452,36 +380,6 @@ pub fn main(
             &mut any_work_done,
         );
 
-        // read: client
-        //         if !client_read_impossible {
-        //             if data_client_to_remote_end <= 0 {
-        //                 'scope: {
-        //                     let bytes_read = match client_stream.read(&mut data_client_to_remote) {
-        //                         Ok(v) => v,
-        //                         Err(e) => {
-        //                             if (e.kind() == io::ErrorKind::WouldBlock)
-        //                                 || (e.kind() == io::ErrorKind::Interrupted)
-        //                             {
-        //                                 // do nothing
-        //                             } else {
-        //                                 client_read_impossible = true;
-        //                                 eprintln!("client_stream read error -> {}", e);
-        //                             }
-        //                             break 'scope;
-        //                         }
-        //                     };
-        //                     if bytes_read == 0 {
-        //                         client_read_impossible = true;
-        //                         break 'scope;
-        //                     }
-        //
-        //                     any_work_done = true;
-        //
-        //                     data_client_to_remote_start = 0;
-        //                     data_client_to_remote_end = bytes_read;
-        //                 }
-        //             }
-        //         }
         stream_read(
             &mut client_stream,
             &mut client_read_impossible,
@@ -491,36 +389,6 @@ pub fn main(
             &mut any_work_done,
         );
 
-        // read: remote
-        //         if !remote_read_impossible {
-        //             if data_remote_to_client_end <= 0 {
-        //                 'scope: {
-        //                     let bytes_read = match remote_stream.read(&mut data_remote_to_client) {
-        //                         Ok(v) => v,
-        //                         Err(e) => {
-        //                             if (e.kind() == io::ErrorKind::WouldBlock)
-        //                                 || (e.kind() == io::ErrorKind::Interrupted)
-        //                             {
-        //                                 // do nothing
-        //                             } else {
-        //                                 eprintln!("remote_stream read error -> {}", e);
-        //                                 remote_read_impossible = true;
-        //                             }
-        //                             break 'scope;
-        //                         }
-        //                     };
-        //                     if bytes_read == 0 {
-        //                         remote_read_impossible = true;
-        //                         break 'scope;
-        //                     }
-        //
-        //                     any_work_done = true;
-        //
-        //                     data_remote_to_client_start = 0;
-        //                     data_remote_to_client_end = bytes_read;
-        //                 }
-        //             }
-        //         }
         stream_read(
             &mut remote_stream,
             &mut remote_read_impossible,
