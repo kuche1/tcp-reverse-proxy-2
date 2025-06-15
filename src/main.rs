@@ -1,16 +1,24 @@
+mod cmdline;
+mod log;
+
 use std::io::{Read, Write};
 use std::net::TcpListener;
 
 fn main() -> std::io::Result<()> {
-    let listener = TcpListener::bind("127.0.0.1:8080")?;
-    println!("Listening on 127.0.0.1:8080");
+    let args = cmdline::main();
+    println!("{:?}", args);
 
-    // Accept incoming connections in a loop
+    let addr = format!("0.0.0.0:{}", args.bind_port);
+
+    println!("trying to bind to address {} -> working...", &addr);
+    let listener = TcpListener::bind(&addr)?;
+    println!("trying to bind to address {} -> done!", addr);
+
     for stream in listener.incoming() {
         match stream {
             Ok(mut stream) => {
                 println!("New connection: {}", stream.peer_addr()?);
-                // Example: echo received data back to the client
+                // echo server
                 let mut buffer = [0; 512];
                 let n = stream.read(&mut buffer)?;
                 stream.write_all(&buffer[..n])?;
@@ -20,5 +28,6 @@ fn main() -> std::io::Result<()> {
             }
         }
     }
+
     Ok(())
 }
