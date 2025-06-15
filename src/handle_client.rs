@@ -293,7 +293,14 @@ pub fn main(
                     ) {
                         Ok(v) => v,
                         Err(e) => {
-                            eprintln!("remote_stream write error -> {}", e);
+                            if (e.kind() == io::ErrorKind::WouldBlock)
+                                || (e.kind() == io::ErrorKind::Interrupted)
+                            {
+                                // do nothing
+                            } else {
+                                eprintln!("remote_stream write error -> {}", e);
+                                remote_write_impossible = true;
+                            }
                             break 'scope;
                         }
                     };
@@ -357,11 +364,14 @@ pub fn main(
                     let bytes_read = match client_stream.read(&mut data_client_to_remote) {
                         Ok(v) => v,
                         Err(e) => {
-                            if e.kind() == io::ErrorKind::WouldBlock {
-                                // TODO sleep ? or remember, then sleep if no one did any work
-                                break 'scope;
+                            if (e.kind() == io::ErrorKind::WouldBlock)
+                                || (e.kind() == io::ErrorKind::Interrupted)
+                            {
+                                // do nothing
+                            } else {
+                                client_read_impossible = true;
+                                eprintln!("client_stream read error -> {}", e);
                             }
-                            eprintln!("client_stream read error -> {}", e);
                             break 'scope;
                         }
                     };
@@ -385,11 +395,14 @@ pub fn main(
                     let bytes_read = match remote_stream.read(&mut data_remote_to_client) {
                         Ok(v) => v,
                         Err(e) => {
-                            if e.kind() == io::ErrorKind::WouldBlock {
-                                // TODO sleep ? or remember, then sleep if no one did any work
-                                break 'scope;
+                            if (e.kind() == io::ErrorKind::WouldBlock)
+                                || (e.kind() == io::ErrorKind::Interrupted)
+                            {
+                                // do nothing
+                            } else {
+                                eprintln!("remote_stream read error -> {}", e);
+                                remote_read_impossible = true;
                             }
-                            eprintln!("remote_stream read error -> {}", e);
                             break 'scope;
                         }
                     };
@@ -411,8 +424,6 @@ pub fn main(
         }
     }
 
-    println!("initiating graceful shutdown...");
-
     server_conn.send_close_notify();
     if let Err(e) = server_conn.complete_io(&mut client_raw_stream) {
         eprintln!("failed to send_close_notify client -> {}", e);
@@ -426,5 +437,5 @@ pub fn main(
         eprintln!("client shutdown error -> {}", e);
     }
 
-    println!("connection closed gracefully");
+    println!("connection closed");
 }
