@@ -338,6 +338,10 @@ pub fn main(
                     let bytes_read = match client_stream.read(&mut data_client_to_remote) {
                         Ok(v) => v,
                         Err(e) => {
+                            if e.kind() == io::ErrorKind::WouldBlock {
+                                // TODO sleep ? or remember, then sleep if no one did any work
+                                break 'scope;
+                            }
                             eprintln!("client_stream read error -> {}", e);
                             break 'scope;
                         }
