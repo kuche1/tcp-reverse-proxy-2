@@ -1,6 +1,7 @@
 // use crate::log;
 
-use clap::Parser; // cargo add clap --features derive
+use clap::Parser;
+use std::fs::File; // cargo add clap --features derive
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -12,6 +13,14 @@ pub struct Args {
     /// Port to bind to
     #[arg(long)]
     pub bind_port: u16,
+
+    /// Certificate file
+    #[arg(long)]
+    pub cert_file: String,
+
+    /// Key file
+    #[arg(long)]
+    pub key_file: String,
 
     /// Server port
     #[arg(long)]
