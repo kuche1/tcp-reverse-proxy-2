@@ -171,7 +171,7 @@ fn stream_read<S: Read>(
                             // do nothing
                         } else {
                             *read_impossible = true;
-                            eprintln!("client_stream read error -> {}", e);
+                            eprintln!("stream read error -> {}", e);
                         }
                         break 'scope;
                     }
@@ -185,6 +185,48 @@ fn stream_read<S: Read>(
 
                 *buffer_start = 0;
                 *buffer_end = bytes_read;
+            }
+        }
+    }
+}
+
+fn stream_write<S: Write>(
+    stream: &mut S,
+    write_impossible: &mut bool,
+    buffer: &mut [u8; 8192],
+    buffer_start: &mut usize,
+    buffer_end: &mut usize,
+    any_work_done: &mut bool,
+) {
+    if !*write_impossible {
+        if *buffer_end > 0 {
+            'scope: {
+                let bytes_written = match stream.write(&buffer[*buffer_start..*buffer_end]) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        if (e.kind() == io::ErrorKind::WouldBlock)
+                            || (e.kind() == io::ErrorKind::Interrupted)
+                        {
+                            // do nothing
+                        } else {
+                            eprintln!("stream write error -> {}", e);
+                            *write_impossible = true;
+                        }
+                        break 'scope;
+                    }
+                };
+                if bytes_written == 0 {
+                    *write_impossible = true;
+                    break 'scope;
+                }
+
+                *any_work_done = true;
+
+                *buffer_start = bytes_written;
+                if buffer_start >= buffer_end {
+                    *buffer_start = 0;
+                    *buffer_end = 0;
+                }
             }
         }
     }
@@ -320,81 +362,95 @@ pub fn main(
             }
         }
 
-        // TODO too much repetition
-
         // send: client -> remote
-        if !remote_write_impossible {
-            if data_client_to_remote_end > 0 {
-                'scope: {
-                    let bytes_written = match remote_stream.write(
-                        &data_client_to_remote
-                            [data_client_to_remote_start..data_client_to_remote_end],
-                    ) {
-                        Ok(v) => v,
-                        Err(e) => {
-                            if (e.kind() == io::ErrorKind::WouldBlock)
-                                || (e.kind() == io::ErrorKind::Interrupted)
-                            {
-                                // do nothing
-                            } else {
-                                eprintln!("remote_stream write error -> {}", e);
-                                remote_write_impossible = true;
-                            }
-                            break 'scope;
-                        }
-                    };
-                    if bytes_written == 0 {
-                        remote_write_impossible = true;
-                        break 'scope;
-                    }
-
-                    any_work_done = true;
-
-                    data_client_to_remote_start = bytes_written;
-                    if data_client_to_remote_start >= data_client_to_remote_end {
-                        data_client_to_remote_start = 0;
-                        data_client_to_remote_end = 0;
-                    }
-                }
-            }
-        }
+        //         if !remote_write_impossible {
+        //             if data_client_to_remote_end > 0 {
+        //                 'scope: {
+        //                     let bytes_written = match remote_stream.write(
+        //                         &data_client_to_remote
+        //                             [data_client_to_remote_start..data_client_to_remote_end],
+        //                     ) {
+        //                         Ok(v) => v,
+        //                         Err(e) => {
+        //                             if (e.kind() == io::ErrorKind::WouldBlock)
+        //                                 || (e.kind() == io::ErrorKind::Interrupted)
+        //                             {
+        //                                 // do nothing
+        //                             } else {
+        //                                 eprintln!("remote_stream write error -> {}", e);
+        //                                 remote_write_impossible = true;
+        //                             }
+        //                             break 'scope;
+        //                         }
+        //                     };
+        //                     if bytes_written == 0 {
+        //                         remote_write_impossible = true;
+        //                         break 'scope;
+        //                     }
+        //
+        //                     any_work_done = true;
+        //
+        //                     data_client_to_remote_start = bytes_written;
+        //                     if data_client_to_remote_start >= data_client_to_remote_end {
+        //                         data_client_to_remote_start = 0;
+        //                         data_client_to_remote_end = 0;
+        //                     }
+        //                 }
+        //             }
+        //         }
+        stream_write(
+            &mut remote_stream,
+            &mut remote_write_impossible,
+            &mut data_client_to_remote,
+            &mut data_client_to_remote_start,
+            &mut data_client_to_remote_end,
+            &mut any_work_done,
+        );
 
         // send: remote -> client
-        if !client_write_impossible {
-            if data_remote_to_client_end > 0 {
-                'scope: {
-                    let bytes_written = match client_stream.write(
-                        &data_remote_to_client
-                            [data_remote_to_client_start..data_remote_to_client_end],
-                    ) {
-                        Ok(v) => v,
-                        Err(e) => {
-                            if (e.kind() == io::ErrorKind::WouldBlock)
-                                || (e.kind() == io::ErrorKind::Interrupted)
-                            {
-                                // do nothing
-                            } else {
-                                eprintln!("client_stream write error -> {}", e);
-                                client_write_impossible = true;
-                            }
-                            break 'scope;
-                        }
-                    };
-                    if bytes_written == 0 {
-                        client_write_impossible = true;
-                        break 'scope;
-                    }
-
-                    any_work_done = true;
-
-                    data_remote_to_client_start = bytes_written;
-                    if data_remote_to_client_start >= data_remote_to_client_end {
-                        data_remote_to_client_start = 0;
-                        data_remote_to_client_end = 0;
-                    }
-                }
-            }
-        }
+        //         if !client_write_impossible {
+        //             if data_remote_to_client_end > 0 {
+        //                 'scope: {
+        //                     let bytes_written = match client_stream.write(
+        //                         &data_remote_to_client
+        //                             [data_remote_to_client_start..data_remote_to_client_end],
+        //                     ) {
+        //                         Ok(v) => v,
+        //                         Err(e) => {
+        //                             if (e.kind() == io::ErrorKind::WouldBlock)
+        //                                 || (e.kind() == io::ErrorKind::Interrupted)
+        //                             {
+        //                                 // do nothing
+        //                             } else {
+        //                                 eprintln!("client_stream write error -> {}", e);
+        //                                 client_write_impossible = true;
+        //                             }
+        //                             break 'scope;
+        //                         }
+        //                     };
+        //                     if bytes_written == 0 {
+        //                         client_write_impossible = true;
+        //                         break 'scope;
+        //                     }
+        //
+        //                     any_work_done = true;
+        //
+        //                     data_remote_to_client_start = bytes_written;
+        //                     if data_remote_to_client_start >= data_remote_to_client_end {
+        //                         data_remote_to_client_start = 0;
+        //                         data_remote_to_client_end = 0;
+        //                     }
+        //                 }
+        //             }
+        //         }
+        stream_write(
+            &mut client_stream,
+            &mut client_write_impossible,
+            &mut data_remote_to_client,
+            &mut data_remote_to_client_start,
+            &mut data_remote_to_client_end,
+            &mut any_work_done,
+        );
 
         // read: client
         //         if !client_read_impossible {
