@@ -1,4 +1,4 @@
-use std::net::{Ipv4Addr, SocketAddrV4, TcpListener};
+use std::net::Ipv4Addr;
 
 pub struct FakeIpGenerator {
     ip_emergency: u32, // used when out of IPs
@@ -17,15 +17,19 @@ impl FakeIpGenerator {
         }
     }
 
-    pub fn gen_next(&mut self) -> u32 {
-        let current = self.ip_last_used + 1;
-        if current > self.ip_last_available {
-            // TODO write to error folder
-            return self.ip_emergency;
-        }
+    pub fn gen_next(&mut self) -> Ipv4Addr {
+        let ip_u32 = 'ip_u32: {
+            let current = self.ip_last_used + 1;
+            if current > self.ip_last_available {
+                // TODO write to error folder
+                break 'ip_u32 self.ip_emergency;
+            }
 
-        self.ip_last_used = current;
+            self.ip_last_used = current;
 
-        current
+            current
+        };
+
+        Ipv4Addr::from(ip_u32)
     }
 }
