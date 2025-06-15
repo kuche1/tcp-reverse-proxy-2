@@ -281,13 +281,14 @@ pub fn main(
 
     //// connect to remote
 
-    eprintln!("test 123");
     dbg!("connect to remote");
 
     let local_addr = SocketAddrV4::new(ip_translated, 0);
 
     let remote_ip = Ipv4Addr::new(127, 0, 0, 1);
     let remote_addr = SocketAddrV4::new(remote_ip, remote_port);
+
+    dbg!("new socket");
 
     let socket = match Socket::new(Domain::IPV4, Type::STREAM, None) {
         Ok(v) => v,
@@ -297,15 +298,21 @@ pub fn main(
         }
     };
 
+    dbg!("bind socket");
+
     if let Err(e) = socket.bind(&SockAddr::from(local_addr)) {
         eprintln!("could not bind socket -> {}", e);
         return;
     }
 
+    dbg!("connect socket");
+
     if let Err(e) = socket.connect(&SockAddr::from(remote_addr)) {
         eprintln!("could not connect to remote host {} -> {}", remote_addr, e);
         return;
     }
+
+    dbg!("convert into remote_stream");
 
     let mut remote_stream: TcpStream = socket.into();
 
