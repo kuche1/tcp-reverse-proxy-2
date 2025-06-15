@@ -71,9 +71,16 @@ fn main() {
 
     //// load tls config
 
-    // TODO hardcoded path
-    let tls_config = load_tls_config("cert.pem", "privkey.pem")
-        .expect("something wrong with loading the tls config");
+    let tls_config = match load_tls_config(&args.certfile, &args.keyfile) {
+        Ok(v) => v,
+        Err(e) => {
+            log::err(
+                &args.error_folder,
+                &format!("could not load tls config -> {}", e),
+            );
+            process::exit(1);
+        }
+    };
 
     //// create ip translator
 

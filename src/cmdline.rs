@@ -16,6 +16,14 @@ pub struct Args {
     /// Server port
     #[arg(long)]
     pub remote_port: u16,
+
+    /// Certificate file (example cert.pem)
+    #[arg(long)]
+    pub certfile: String,
+
+    /// Key file (example privkey.pem)
+    #[arg(long)]
+    pub keyfile: String,
 }
 
 pub fn main() -> Args {
