@@ -27,26 +27,5 @@ pub struct Args {
 }
 
 pub fn main() -> Args {
-    let args = Args::parse();
-
-    //     if args.restart_at >= 24 {
-    //         log::err(
-    //             &args.error_folder,
-    //             &format!(
-    //                 "invalid hour `{}`, needs to be less than 24",
-    //                 args.restart_at
-    //             ),
-    //         );
-    //         panic!();
-    //     }
-    //
-    //     if args.restart_at == 0 {
-    //         log::err(
-    //             &args.error_folder,
-    //             "restarting at midnight is not supported, sorry",
-    //         );
-    //         panic!();
-    //     }
-
-    args
+    Args::parse()
 }
