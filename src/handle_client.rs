@@ -311,7 +311,6 @@ pub fn main(
 
     // TODO some code for
     //let _ = remote_stream.shutdown(Shutdown::Write);
-    //if let Err(e) = client_stream.flush() {
 
     // TODO
     // it is possible to optimise the shutdown calls (remember: they need to be followed by flush (not sure if this is 100% true))
@@ -410,6 +409,44 @@ pub fn main(
             thread::sleep(NO_WORK_DONE_SLEEP);
         }
     }
+
+    //// flush: client
+
+    while data_remote_to_client_end > 0 {
+        let mut _any_work_done: bool = false;
+        stream_write(
+            &mut client_stream,
+            &mut client_write_impossible,
+            &mut data_remote_to_client,
+            &mut data_remote_to_client_start,
+            &mut data_remote_to_client_end,
+            &mut _any_work_done,
+        );
+    }
+
+    if let Err(e) = client_stream.flush() {
+        eprintln!("could not flush client -> {}", e);
+    }
+
+    //// flush: remote
+
+    while data_client_to_remote_end > 0 {
+        let mut _any_work_done: bool = false;
+        stream_write(
+            &mut remote_stream,
+            &mut remote_write_impossible,
+            &mut data_client_to_remote,
+            &mut data_client_to_remote_start,
+            &mut data_client_to_remote_end,
+            &mut _any_work_done,
+        );
+    }
+
+    if let Err(e) = remote_stream.flush() {
+        eprintln!("could not flush remote -> {}", e);
+    }
+
+    //// shutdown
 
     server_conn.send_close_notify();
     if let Err(e) = server_conn.complete_io(&mut client_raw_stream) {
