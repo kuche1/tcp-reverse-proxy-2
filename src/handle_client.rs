@@ -158,10 +158,10 @@ pub fn main(
     _remote_port: u16,
     tls_config: Arc<ServerConfig>,
 ) {
-    // Set timeouts before using the stream
-    let timeout_duration = Duration::from_secs(30);
-    let _ = client_stream.set_read_timeout(Some(timeout_duration));
-    let _ = client_stream.set_write_timeout(Some(timeout_duration));
+    // // Set timeouts before using the stream
+    // let timeout_duration = Duration::from_secs(30);
+    // let _ = client_stream.set_read_timeout(Some(timeout_duration));
+    // let _ = client_stream.set_write_timeout(Some(timeout_duration));
 
     // Create TLS connection
     let mut server_conn = match ServerConnection::new(tls_config) {
@@ -187,9 +187,9 @@ pub fn main(
         }
     };
 
-    // Set backend timeouts
-    let _ = backend.set_read_timeout(Some(timeout_duration));
-    let _ = backend.set_write_timeout(Some(timeout_duration));
+    // // Set backend timeouts
+    // let _ = backend.set_read_timeout(Some(timeout_duration));
+    // let _ = backend.set_write_timeout(Some(timeout_duration));
 
     // Set both streams to non-blocking mode
     if let Err(e) = client_stream.set_nonblocking(true) {
