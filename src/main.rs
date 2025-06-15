@@ -9,8 +9,7 @@ use std::net::TcpListener;
 use std::process;
 use std::thread;
 
-// TODO get rid of this Result
-fn main() -> std::io::Result<()> {
+fn main() {
     //// parse args
 
     let args = cmdline::main();
@@ -49,8 +48,14 @@ fn main() -> std::io::Result<()> {
             }
         };
 
-        // TODO do not use `?`
-        let ip_original = stream.peer_addr()?.ip();
+        let ip_original = match stream.peer_addr() {
+            Ok(v) => v,
+            Err(e) => {
+                println!("could not get client address -> {}", e);
+                continue;
+            }
+        };
+        let ip_original = ip_original.ip();
 
         println!("new connection from {}", ip_original);
 
@@ -60,8 +65,4 @@ fn main() -> std::io::Result<()> {
 
         thread::spawn(move || handle_client::main(stream, ip_translated));
     }
-
-    //// return
-
-    Ok(())
 }
