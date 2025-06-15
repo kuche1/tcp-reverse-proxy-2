@@ -229,6 +229,9 @@ pub fn main(
     //let _ = remote_stream.shutdown(Shutdown::Write);
     //if let Err(e) = client_stream.flush() {
 
+    // TODO
+    // it is possible to optimise the shutdown calls (remember: they need to be followed by flush (not sure if this is 100% true))
+
     // TODO make this buffer size a constant
 
     let mut data_client_to_remote = [0u8; 8192];
