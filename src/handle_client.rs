@@ -1,7 +1,6 @@
 use rustls::{ServerConnection, StreamOwned};
 use socket2::{Domain, SockAddr, Socket, Type}; // cargo add socket2
 use std::io;
-use std::io::{Read, Write};
 use std::net::Shutdown;
 use std::net::{Ipv4Addr, SocketAddrV4, TcpStream};
 use std::thread;
@@ -39,81 +38,34 @@ pub fn main(
 
     //// forward data
 
-    let mut client_closed = false;
-    let mut remote_closed = false;
-    let mut client_buf = [0u8; 4096];
-    let mut remote_buf = [0u8; 4096];
-
-    loop {
-        // client -> remote
-        if !client_closed {
-            match client_stream.read(&mut client_buf) {
-                Ok(0) => {
-                    let _ = remote_stream.shutdown(Shutdown::Write);
-                    client_closed = true;
-                }
-                Ok(n) => {
-                    if remote_stream.write_all(&client_buf[..n]).is_err() {
-                        client_closed = true;
-                    }
-                }
-                Err(_) => {
-                    client_closed = true;
-                }
-            }
+    let mut client_stream_clone = match client_stream.sock.try_clone() {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("could not clone client_stream -> {}", e);
+            return;
         }
-
-        // remote -> client
-        if !remote_closed {
-            match remote_stream.read(&mut remote_buf) {
-                Ok(0) => {
-                    // No shutdown for TLS stream; just mark as closed
-                    remote_closed = true;
-                }
-                Ok(n) => {
-                    if client_stream.write_all(&remote_buf[..n]).is_err() {
-                        remote_closed = true;
-                    }
-                }
-                Err(_) => {
-                    remote_closed = true;
-                }
-            }
+    };
+    let mut remote_stream_clone = match remote_stream.try_clone() {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("could not clone remote_stream -> {}", e);
+            return;
         }
+    };
 
-        if client_closed && remote_closed {
-            break;
-        }
-    }
+    // forward: client -> remote
+    let client_to_remote = thread::spawn(move || {
+        let _ = io::copy(&mut client_stream, &mut remote_stream).ok();
+        let _ = remote_stream.shutdown(Shutdown::Write);
+    });
 
-    //     let mut client_stream_clone = match client_stream.try_clone() {
-    //         Ok(s) => s,
-    //         Err(e) => {
-    //             eprintln!("could not clone client_stream -> {}", e);
-    //             return;
-    //         }
-    //     };
-    //     let mut remote_stream_clone = match remote_stream.try_clone() {
-    //         Ok(s) => s,
-    //         Err(e) => {
-    //             eprintln!("could not clone remote_stream -> {}", e);
-    //             return;
-    //         }
-    //     };
-    //
-    //     // forward: client -> remote
-    //     let client_to_remote = thread::spawn(move || {
-    //         let _ = io::copy(&mut client_stream, &mut remote_stream).ok();
-    //         let _ = remote_stream.shutdown(Shutdown::Write);
-    //     });
-    //
-    //     // forward: remote -> client
-    //     let remote_to_client = thread::spawn(move || {
-    //         let _ = io::copy(&mut remote_stream_clone, &mut client_stream_clone).ok();
-    //         let _ = client_stream_clone.shutdown(Shutdown::Write);
-    //     });
-    //
-    //     // wait for either direction to finish
-    //     let _ = client_to_remote.join();
-    //     let _ = remote_to_client.join();
+    // forward: remote -> client
+    let remote_to_client = thread::spawn(move || {
+        let _ = io::copy(&mut remote_stream_clone, &mut client_stream_clone).ok();
+        let _ = client_stream_clone.shutdown(Shutdown::Write);
+    });
+
+    // wait for either direction to finish
+    let _ = client_to_remote.join();
+    let _ = remote_to_client.join();
 }
