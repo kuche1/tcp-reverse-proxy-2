@@ -281,6 +281,7 @@ pub fn main(
 
     //// connect to remote
 
+    eprintln!("test 123");
     dbg!("connect to remote");
 
     let local_addr = SocketAddrV4::new(ip_translated, 0);
