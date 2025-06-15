@@ -17,6 +17,14 @@ fn main() -> std::io::Result<()> {
 
     let mut ip_generator = fake_ip::FakeIpGenerator::new();
 
+    // loop {
+    //     let ip = match ip_generator.gen_next() {
+    //         Some(v) => v,
+    //         None => return Ok(()),
+    //     };
+    //     println!("ip {}", ip);
+    // }
+
     //// bind
 
     let addr = format!("0.0.0.0:{}", args.bind_port);
@@ -27,7 +35,7 @@ fn main() -> std::io::Result<()> {
         Err(e) => {
             log::err(
                 &args.error_folder,
-                &format!("could not bind to address `{}` -> `{}`", addr, e),
+                &format!("could not bind to address `{}` -> {}", addr, e),
             );
             process::exit(1);
         }
@@ -36,29 +44,20 @@ fn main() -> std::io::Result<()> {
 
     //// handle new connections
 
-    // for stream in listener.incoming() {
-    //     match stream {
-    //         Ok(mut stream) => {
-    //             println!("New connection: {}", stream.peer_addr()?);
-    //             // echo server
-    //             let mut buffer = [0; 512];
-    //             let n = stream.read(&mut buffer)?;
-    //             stream.write_all(&buffer[..n])?;
-    //         }
-    //         Err(e) => {
-    //             eprintln!("Connection failed: {}", e);
-    //         }
-    //     }
-    // }
-
-    //// gen fake ip
-
-    loop {
-        let ip = match ip_generator.gen_next() {
-            Some(v) => v,
-            None => return Ok(()),
+    for stream in listener.incoming() {
+        let mut stream = match stream {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("connection failed -> {}", e);
+                continue;
+            }
         };
-        println!("ip {}", ip);
+
+        println!("New connection: {}", stream.peer_addr()?);
+        // echo server
+        let mut buffer = [0; 512];
+        let n = stream.read(&mut buffer)?;
+        stream.write_all(&buffer[..n])?;
     }
 
     //// return
