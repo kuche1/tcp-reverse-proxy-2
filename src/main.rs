@@ -17,13 +17,10 @@ fn main() -> std::io::Result<()> {
 
     let mut ip_generator = fake_ip::FakeIpGenerator::new();
 
-    // loop {
-    //     let ip = match ip_generator.gen_next() {
-    //         Some(v) => v,
-    //         None => return Ok(()),
-    //     };
-    //     println!("ip {}", ip);
-    // }
+    loop {
+        let ip = ip_generator.gen_next();
+        println!("ip {}", ip);
+    }
 
     //// bind
 
@@ -48,12 +45,17 @@ fn main() -> std::io::Result<()> {
         let mut stream = match stream {
             Ok(v) => v,
             Err(e) => {
-                eprintln!("connection failed -> {}", e);
+                // eprintln!("connection failed -> {}", e);
+                println!("connection failed -> {}", e);
                 continue;
             }
         };
 
-        println!("New connection: {}", stream.peer_addr()?);
+        // TODO do not use `?`
+        let ip = stream.peer_addr()?.ip();
+
+        println!("new connection from {}", ip);
+
         // echo server
         let mut buffer = [0; 512];
         let n = stream.read(&mut buffer)?;
