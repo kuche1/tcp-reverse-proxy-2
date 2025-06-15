@@ -346,6 +346,8 @@ pub fn main(
     let mut last_activity = Instant::now();
 
     loop {
+        dbg!("loooooping");
+
         // break: if connection falls apart
         {
             //// this is more correct but less practical
