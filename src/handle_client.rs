@@ -1,3 +1,4 @@
+use socket2::{Domain, SockAddr, Socket, Type}; // cargo add socket2
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddrV4, TcpStream};
 
@@ -11,4 +12,12 @@ pub fn main(mut stream: TcpStream, ip_translated: Ipv4Addr, remote_port: u16) {
 
     let remote_ip = Ipv4Addr::new(127, 0, 0, 1);
     let remote_addr = SocketAddrV4::new(remote_ip, remote_port);
+
+    let socket = match Socket::new(Domain::IPV4, Type::STREAM, None) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("could not create socket -> {}", e);
+            return;
+        }
+    };
 }
