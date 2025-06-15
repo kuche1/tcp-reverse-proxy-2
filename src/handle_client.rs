@@ -363,8 +363,6 @@ pub fn main(
     let mut last_activity = Instant::now();
 
     loop {
-        dbg!("loooooping");
-
         // break: if connection falls apart
         {
             //// this is more correct but less practical
@@ -447,10 +445,8 @@ pub fn main(
         );
 
         if any_work_done {
-            dbg!("did some work");
             last_activity = Instant::now();
         } else {
-            dbg!("no work done");
             // break: in case of inactivity
             if Some(last_activity.elapsed()) >= terminate_after_inactivity {
                 // this is actually not the greatest since it is possible that
