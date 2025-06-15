@@ -5,6 +5,8 @@ mod log;
 use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::process;
+use std::thread;
+use std::time::Duration;
 
 // TODO get rid of this Result
 fn main() -> std::io::Result<()> {
@@ -20,6 +22,7 @@ fn main() -> std::io::Result<()> {
     loop {
         let ip = ip_generator.gen_next();
         println!("ip {}", ip);
+        thread::sleep(Duration::from_millis(100));
     }
 
     //// bind
