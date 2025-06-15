@@ -6,7 +6,7 @@ use std::io::{Read, Write};
 use std::net::Shutdown;
 use std::net::{Ipv4Addr, SocketAddrV4, TcpStream};
 use std::sync::Arc;
-// use std::thread;
+use std::thread;
 use std::time::Duration;
 
 // pub fn main(
@@ -150,6 +150,45 @@ use std::time::Duration;
 
 const NO_WORK_DONE_SLEEP: Duration = Duration::from_millis(10);
 // TODO ideally we would use `epoll` or something like that
+
+fn stream_read<S: Read>(
+    stream: &mut S,
+    read_impossible: &mut bool,
+    buffer: &mut [u8; 8192],
+    buffer_start: &mut usize,
+    buffer_end: &mut usize,
+    any_work_done: &mut bool,
+) {
+    if !*read_impossible {
+        if *buffer_end <= 0 {
+            'scope: {
+                let bytes_read = match stream.read(buffer) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        if (e.kind() == io::ErrorKind::WouldBlock)
+                            || (e.kind() == io::ErrorKind::Interrupted)
+                        {
+                            // do nothing
+                        } else {
+                            *read_impossible = true;
+                            eprintln!("client_stream read error -> {}", e);
+                        }
+                        break 'scope;
+                    }
+                };
+                if bytes_read == 0 {
+                    *read_impossible = true;
+                    break 'scope;
+                }
+
+                *any_work_done = true;
+
+                *buffer_start = 0;
+                *buffer_end = bytes_read;
+            }
+        }
+    }
+}
 
 // TODO also provide the client ip
 //  then make a "title" that contains both, so that error printing is better
@@ -358,69 +397,85 @@ pub fn main(
         }
 
         // read: client
-        if !client_read_impossible {
-            if data_client_to_remote_end <= 0 {
-                'scope: {
-                    let bytes_read = match client_stream.read(&mut data_client_to_remote) {
-                        Ok(v) => v,
-                        Err(e) => {
-                            if (e.kind() == io::ErrorKind::WouldBlock)
-                                || (e.kind() == io::ErrorKind::Interrupted)
-                            {
-                                // do nothing
-                            } else {
-                                client_read_impossible = true;
-                                eprintln!("client_stream read error -> {}", e);
-                            }
-                            break 'scope;
-                        }
-                    };
-                    if bytes_read == 0 {
-                        client_read_impossible = true;
-                        break 'scope;
-                    }
-
-                    any_work_done = true;
-
-                    data_client_to_remote_start = 0;
-                    data_client_to_remote_end = bytes_read;
-                }
-            }
-        }
+        //         if !client_read_impossible {
+        //             if data_client_to_remote_end <= 0 {
+        //                 'scope: {
+        //                     let bytes_read = match client_stream.read(&mut data_client_to_remote) {
+        //                         Ok(v) => v,
+        //                         Err(e) => {
+        //                             if (e.kind() == io::ErrorKind::WouldBlock)
+        //                                 || (e.kind() == io::ErrorKind::Interrupted)
+        //                             {
+        //                                 // do nothing
+        //                             } else {
+        //                                 client_read_impossible = true;
+        //                                 eprintln!("client_stream read error -> {}", e);
+        //                             }
+        //                             break 'scope;
+        //                         }
+        //                     };
+        //                     if bytes_read == 0 {
+        //                         client_read_impossible = true;
+        //                         break 'scope;
+        //                     }
+        //
+        //                     any_work_done = true;
+        //
+        //                     data_client_to_remote_start = 0;
+        //                     data_client_to_remote_end = bytes_read;
+        //                 }
+        //             }
+        //         }
+        stream_read(
+            &mut client_stream,
+            &mut client_read_impossible,
+            &mut data_client_to_remote,
+            &mut data_client_to_remote_start,
+            &mut data_client_to_remote_end,
+            &mut any_work_done,
+        );
 
         // read: remote
-        if !remote_read_impossible {
-            if data_remote_to_client_end <= 0 {
-                'scope: {
-                    let bytes_read = match remote_stream.read(&mut data_remote_to_client) {
-                        Ok(v) => v,
-                        Err(e) => {
-                            if (e.kind() == io::ErrorKind::WouldBlock)
-                                || (e.kind() == io::ErrorKind::Interrupted)
-                            {
-                                // do nothing
-                            } else {
-                                eprintln!("remote_stream read error -> {}", e);
-                                remote_read_impossible = true;
-                            }
-                            break 'scope;
-                        }
-                    };
-                    if bytes_read == 0 {
-                        remote_read_impossible = true;
-                        break 'scope;
-                    }
-
-                    any_work_done = true;
-
-                    data_remote_to_client_start = 0;
-                    data_remote_to_client_end = bytes_read;
-                }
-            }
-        }
+        //         if !remote_read_impossible {
+        //             if data_remote_to_client_end <= 0 {
+        //                 'scope: {
+        //                     let bytes_read = match remote_stream.read(&mut data_remote_to_client) {
+        //                         Ok(v) => v,
+        //                         Err(e) => {
+        //                             if (e.kind() == io::ErrorKind::WouldBlock)
+        //                                 || (e.kind() == io::ErrorKind::Interrupted)
+        //                             {
+        //                                 // do nothing
+        //                             } else {
+        //                                 eprintln!("remote_stream read error -> {}", e);
+        //                                 remote_read_impossible = true;
+        //                             }
+        //                             break 'scope;
+        //                         }
+        //                     };
+        //                     if bytes_read == 0 {
+        //                         remote_read_impossible = true;
+        //                         break 'scope;
+        //                     }
+        //
+        //                     any_work_done = true;
+        //
+        //                     data_remote_to_client_start = 0;
+        //                     data_remote_to_client_end = bytes_read;
+        //                 }
+        //             }
+        //         }
+        stream_read(
+            &mut remote_stream,
+            &mut remote_read_impossible,
+            &mut data_remote_to_client,
+            &mut data_remote_to_client_start,
+            &mut data_remote_to_client_end,
+            &mut any_work_done,
+        );
 
         if !any_work_done {
-            std::thread::sleep(NO_WORK_DONE_SLEEP);
+            thread::sleep(NO_WORK_DONE_SLEEP);
         }
     }
 
