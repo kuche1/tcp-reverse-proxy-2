@@ -243,8 +243,6 @@ pub fn main(
     tls_config: Arc<ServerConfig>,
     terminate_after_inactivity_ms: Option<u64>,
 ) {
-    dbg!("in handle_client");
-
     //     //// timeout: client
     //
     //     let read_write_timeout_ms = match read_write_timeous_ms {
@@ -264,8 +262,6 @@ pub fn main(
 
     //// tls
 
-    dbg!("setup tls");
-
     let mut server_conn = match ServerConnection::new(tls_config) {
         Ok(v) => v,
         Err(e) => {
@@ -281,14 +277,10 @@ pub fn main(
 
     //// connect to remote
 
-    dbg!("connect to remote");
-
     let local_addr = SocketAddrV4::new(ip_translated, 0);
 
     let remote_ip = Ipv4Addr::new(127, 0, 0, 1);
     let remote_addr = SocketAddrV4::new(remote_ip, remote_port);
-
-    dbg!("new socket");
 
     let socket = match Socket::new(Domain::IPV4, Type::STREAM, None) {
         Ok(v) => v,
@@ -297,8 +289,6 @@ pub fn main(
             return;
         }
     };
-
-    dbg!("bind socket");
 
     if let Err(e) = socket.bind(&SockAddr::from(local_addr)) {
         eprintln!("could not bind socket -> {}", e);
@@ -315,8 +305,6 @@ pub fn main(
 
     dbg!("connect socket: done!");
 
-    dbg!("convert into remote_stream");
-
     let mut remote_stream: TcpStream = socket.into();
 
     //     //// timeout: remote
@@ -325,8 +313,6 @@ pub fn main(
     //     let _ = remote_stream.set_write_timeout(read_write_timeout_ms);
 
     //// make nonblocking
-
-    dbg!("make nonblocking");
 
     if let Err(e) = client_raw_stream.set_nonblocking(true) {
         eprintln!("could not make client nonblocking -> {}", e);
