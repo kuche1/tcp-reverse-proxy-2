@@ -250,7 +250,7 @@ pub fn main(
                 }
                 Err(e) if e.kind() == io::ErrorKind::WouldBlock => {}
                 Err(e) => {
-                    eprintln!("client read error: {}", e);
+                    eprintln!("client read error -> {}", e);
                     break;
                 }
             }
