@@ -35,7 +35,7 @@ pub fn main(mut client_stream: TcpStream, ip_translated: Ipv4Addr, remote_port: 
 
     let mut remote_stream: TcpStream = socket.into();
 
-    ////// TODO generated code
+    //// forward data
 
     let mut client_stream_clone = match client_stream.try_clone() {
         Ok(s) => s,
