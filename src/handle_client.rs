@@ -305,15 +305,9 @@ pub fn main(
         return;
     }
 
-    dbg!("make remote nonblocking");
-
-    if let Err(e) = socket.set_nonblocking(true) {
-        eprintln!("could not make remote nonblocking -> {}", e);
-        return;
-    }
-
     dbg!("connect socket");
 
+    // making the socket nonblocking before connecting is a bad idea
     if let Err(e) = socket.connect(&SockAddr::from(remote_addr)) {
         eprintln!("could not connect to remote host {} -> {}", remote_addr, e);
         return;
@@ -328,12 +322,17 @@ pub fn main(
     //     let _ = remote_stream.set_read_timeout(read_write_timeout_ms);
     //     let _ = remote_stream.set_write_timeout(read_write_timeout_ms);
 
-    //// make client nonblocking
+    //// make nonblocking
 
-    dbg!("make client nonblocking");
+    dbg!("make nonblocking");
 
     if let Err(e) = client_raw_stream.set_nonblocking(true) {
         eprintln!("could not make client nonblocking -> {}", e);
+        return;
+    }
+
+    if let Err(e) = socket.set_nonblocking(true) {
+        eprintln!("could not make remote nonblocking -> {}", e);
         return;
     }
 
@@ -375,6 +374,8 @@ pub fn main(
             // if client_to_remote_impossible && remote_to_client_impossible {
             //     break;
             // }
+            //
+            // TODO try `||`
 
             //// this is less correct but more practical
             // client(read) -> remote(write)
