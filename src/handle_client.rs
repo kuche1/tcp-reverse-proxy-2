@@ -148,7 +148,8 @@ use std::time::Duration;
 //     //     let _ = remote_to_client.join();
 // }
 
-//// TODO vvv piece of shit code vvv
+const NO_WORK_DONE_SLEEP: Duration = Duration::from_millis(10);
+// TODO ideally we would use `epoll` or something like that
 
 // TODO also provide the client ip
 //  then make a "title" that contains both, so that error printing is better
@@ -247,6 +248,8 @@ pub fn main(
     let mut remote_write_impossible = false;
 
     loop {
+        let mut any_work_done = false;
+
         if data_client_to_remote_end > 0 {
             if remote_write_impossible {
                 data_client_to_remote_start = 0;
@@ -298,6 +301,9 @@ pub fn main(
                         remote_write_impossible = true;
                         break 'scope;
                     }
+
+                    any_work_done = true;
+
                     data_client_to_remote_start = bytes_written;
                     if data_client_to_remote_start >= data_client_to_remote_end {
                         data_client_to_remote_start = 0;
@@ -325,6 +331,9 @@ pub fn main(
                         client_write_impossible = true;
                         break 'scope;
                     }
+
+                    any_work_done = true;
+
                     data_remote_to_client_start = bytes_written;
                     if data_remote_to_client_start >= data_remote_to_client_end {
                         data_remote_to_client_start = 0;
@@ -353,6 +362,9 @@ pub fn main(
                         client_read_impossible = true;
                         break 'scope;
                     }
+
+                    any_work_done = true;
+
                     data_client_to_remote_start = 0;
                     data_client_to_remote_end = bytes_read;
                 }
@@ -378,14 +390,18 @@ pub fn main(
                         remote_read_impossible = true;
                         break 'scope;
                     }
+
+                    any_work_done = true;
+
                     data_remote_to_client_start = 0;
                     data_remote_to_client_end = bytes_read;
                 }
             }
         }
 
-        // TODO this is not great
-        std::thread::sleep(Duration::from_millis(10));
+        if !any_work_done {
+            std::thread::sleep(NO_WORK_DONE_SLEEP);
+        }
     }
 
     println!("initiating graceful shutdown...");
