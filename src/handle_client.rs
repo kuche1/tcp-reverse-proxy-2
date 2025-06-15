@@ -445,6 +445,7 @@ pub fn main(
         );
 
         if any_work_done {
+            dbg!("work done !");
             last_activity = Instant::now();
         } else {
             // break: in case of inactivity
