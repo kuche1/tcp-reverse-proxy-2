@@ -12,7 +12,8 @@ use std::net::TcpListener;
 use std::process;
 use std::thread;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     //// parse args
 
     let args = cmdline::main();
@@ -67,6 +68,7 @@ fn main() {
             ip_original, ip_translated
         );
 
-        thread::spawn(move || handle_client::main(stream, ip_translated, args.remote_port));
+        // thread::spawn(move || handle_client::main(stream, ip_translated, args.remote_port));
+        handle_client::main(stream, ip_translated, args.remote_port).await;
     }
 }
