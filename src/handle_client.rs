@@ -1,6 +1,7 @@
 use socket2::{Domain, SockAddr, Socket, Type}; // cargo add socket2
 use std::io;
 use std::io::{Read, Write};
+use std::net::Shutdown;
 use std::net::{Ipv4Addr, SocketAddrV4, TcpStream};
 use std::thread;
 
@@ -54,12 +55,14 @@ pub fn main(mut client_stream: TcpStream, ip_translated: Ipv4Addr, remote_port: 
 
     // forward: client -> remote
     let client_to_remote = thread::spawn(move || {
-        io::copy(&mut client_stream, &mut remote_stream).ok();
+        let _ = io::copy(&mut client_stream, &mut remote_stream).ok();
+        let _ = remote_stream.shutdown(Shutdown::Write);
     });
 
     // forward: remote -> client
     let remote_to_client = thread::spawn(move || {
-        io::copy(&mut remote_stream_clone, &mut client_stream_clone).ok();
+        let _ = io::copy(&mut remote_stream_clone, &mut client_stream_clone).ok();
+        let _ = client_stream_clone.shutdown(Shutdown::Write);
     });
 
     // wait for either direction to finish
