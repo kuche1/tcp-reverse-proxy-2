@@ -5,9 +5,9 @@ mod log;
 
 use crate::ip_translator::*;
 
-// use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::process;
+use std::thread;
 
 // TODO get rid of this Result
 fn main() -> std::io::Result<()> {
@@ -58,12 +58,7 @@ fn main() -> std::io::Result<()> {
 
         println!("use translated ip {}", ip_translated);
 
-        handle_client::main(stream, ip_translated);
-
-        // // echo server
-        // let mut buffer = [0; 512];
-        // let n = stream.read(&mut buffer)?;
-        // stream.write_all(&buffer[..n])?;
+        thread::spawn(move || handle_client::main(stream, ip_translated));
     }
 
     //// return
