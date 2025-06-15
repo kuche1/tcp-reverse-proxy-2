@@ -40,7 +40,7 @@ fn main() -> std::io::Result<()> {
     //// handle new connections
 
     for stream in listener.incoming() {
-        let mut stream = match stream {
+        let stream = match stream {
             Ok(v) => v,
             Err(e) => {
                 // eprintln!("connection failed -> {}", e);
