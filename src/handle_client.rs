@@ -81,13 +81,10 @@ pub fn main(
             }
         }
 
-        if client_closed || remote_closed {
+        if client_closed && remote_closed {
             break;
         }
     }
-
-    remote_stream.flush().ok();
-    client_stream.flush().ok();
 
     //     let mut client_stream_clone = match client_stream.try_clone() {
     //         Ok(s) => s,
