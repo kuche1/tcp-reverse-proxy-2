@@ -74,7 +74,7 @@ fn main() {
         let ip_translated = ip_translator.translate(ip_original);
 
         println!(
-            "!! new connection from {}; using translated ip {}",
+            "new connection from {}; using translated ip {}",
             ip_original, ip_translated
         );
 
