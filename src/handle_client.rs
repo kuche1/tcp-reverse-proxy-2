@@ -225,6 +225,7 @@ pub fn main(
 
     //// forward data
 
+    // TODO make this buffer size a constant
     let mut data_buffer = [0u8; 8192];
     let mut client_closed = false;
     let mut remote_closed = false;
