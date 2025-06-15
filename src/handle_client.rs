@@ -348,16 +348,27 @@ pub fn main(
     loop {
         // break: if connection falls apart
         {
+            //// this is more correct but less practical
             // let client_to_remote_impossible = client_read_impossible || remote_write_impossible;
-            let remote_to_client_impossible = remote_read_impossible || client_write_impossible;
-
-            // // this is more correct
+            // let remote_to_client_impossible = remote_read_impossible || client_write_impossible;
+            //
             // if client_to_remote_impossible && remote_to_client_impossible {
             //     break;
             // }
 
-            // but this is more practical
-            if remote_to_client_impossible {
+            //// this is less correct but more practical
+            // client(read) -> remote(write)
+            // remote(read) -> client(write)
+            if client_write_impossible {
+                break;
+            }
+            if remote_read_impossible {
+                break;
+            }
+            if remote_write_impossible {
+                break;
+            }
+            if client_read_impossible {
                 break;
             }
         }
@@ -428,7 +439,9 @@ pub fn main(
         }
     }
 
-    //// flush: client
+    //// TODO the flushing is not great, let's make sure all is flushed
+
+    //// flush: remote -> client
 
     while data_remote_to_client_end > 0 {
         let mut _any_work_done: bool = false;
@@ -446,7 +459,7 @@ pub fn main(
         eprintln!("could not flush client -> {}", e);
     }
 
-    //// flush: remote
+    //// flush: client -> remote
 
     while data_client_to_remote_end > 0 {
         let mut _any_work_done: bool = false;
