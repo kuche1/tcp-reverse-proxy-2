@@ -20,4 +20,16 @@ pub fn main(mut stream: TcpStream, ip_translated: Ipv4Addr, remote_port: u16) {
             return;
         }
     };
+
+    if let Err(e) = socket.bind(&SockAddr::from(local_addr)) {
+        eprintln!("could not bind socket -> {}", e);
+        return;
+    }
+
+    if let Err(e) = socket.connect(&SockAddr::from(remote_addr)) {
+        eprintln!("could not connect to remote host -> {}", e);
+        return;
+    }
+
+    let remote_stream: TcpStream = socket.into();
 }
