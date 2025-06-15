@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr};
 
-// TODO rename to IpTranslator
 pub struct IpTranslator {
     ip_emergency: u32, // used when out of IPs
     ip_last_used: u32,
@@ -28,6 +27,8 @@ impl IpTranslator {
             let current = self.ip_last_used + 1;
             if current > self.ip_last_available {
                 // TODO write to error folder
+                // or maybe we should just go back to the start
+                // and start re-giving IPs
                 break 'ip_u32 self.ip_emergency;
             }
 
