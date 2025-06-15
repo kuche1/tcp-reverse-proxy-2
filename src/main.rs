@@ -3,6 +3,7 @@ mod log;
 
 use std::io::{Read, Write};
 use std::net::TcpListener;
+use std::process;
 
 fn main() -> std::io::Result<()> {
     let args = cmdline::main();
@@ -11,7 +12,16 @@ fn main() -> std::io::Result<()> {
     let addr = format!("0.0.0.0:{}", args.bind_port);
 
     println!("trying to bind to address {} -> working...", &addr);
-    let listener = TcpListener::bind(&addr)?;
+    let listener = match TcpListener::bind(&addr) {
+        Ok(v) => v,
+        Err(e) => {
+            log::err(
+                &args.error_folder,
+                &format!("could not bind to address `{}` -> `{}`", addr, e),
+            );
+            process::exit(1);
+        }
+    };
     println!("trying to bind to address {} -> done!", addr);
 
     for stream in listener.incoming() {
