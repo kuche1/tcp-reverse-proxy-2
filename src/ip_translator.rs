@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr};
 
 pub struct IpTranslator {
-    ip_emergency: u32, // used when out of IPs
+    ip_first_to_use: u32,
     ip_last_used: u32,
     ip_last_available: u32,
 
@@ -11,31 +11,29 @@ pub struct IpTranslator {
 
 impl IpTranslator {
     pub fn new() -> Self {
-        let ip = (127 << 24) | (0 << 16) | (0 << 8) | (1 << 0);
+        let ip = (127 << 24) | (0 << 16) | (0 << 8) | (2 << 0);
 
         IpTranslator {
-            ip_emergency: ip,
-            ip_last_used: ip,
+            ip_first_to_use: ip,
+            ip_last_used: ip - 1,
             ip_last_available: (127 << 24) | (255 << 16) | (255 << 8) | (254 << 0), // 127.255.255.255 is broadcast
 
             ip_map: HashMap::new(),
         }
     }
 
-    fn gen_next(&mut self) -> Ipv4Addr {
-        let ip_u32 = 'ip_u32: {
+    fn get_next_ip(&mut self) -> Ipv4Addr {
+        let ip_u32 = {
             let current = self.ip_last_used + 1;
             if current > self.ip_last_available {
-                // TODO write to error folder
-                // or maybe we should just go back to the start
-                // and start re-giving IPs
-                break 'ip_u32 self.ip_emergency;
+                // actually untested, but it should be fine
+                self.ip_first_to_use
+            } else {
+                current
             }
-
-            self.ip_last_used = current;
-
-            current
         };
+
+        self.ip_last_used = ip_u32;
 
         Ipv4Addr::from(ip_u32)
     }
@@ -46,7 +44,7 @@ impl IpTranslator {
             None => {}
         };
 
-        let new_ip = self.gen_next();
+        let new_ip = self.get_next_ip();
 
         self.ip_map.insert(original_ip, new_ip);
 
