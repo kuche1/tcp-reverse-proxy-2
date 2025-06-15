@@ -367,7 +367,9 @@ pub fn main(
     loop {
         // break: if connection falls apart
         {
-            // this is more correct but less practical
+            //// I don't even know any more
+            //// I think that the server I'm using for testing has blocked me
+
             let client_to_remote_impossible = client_read_impossible || remote_write_impossible;
             let remote_to_client_impossible = remote_read_impossible || client_write_impossible;
 
@@ -376,7 +378,6 @@ pub fn main(
                 break;
             }
 
-            //// this is too aggressive and causes the connection to terminate instantly (tested with kf2 webadmin)
             // // client(read) -> remote(write)
             // // remote(read) -> client(write)
             // if client_write_impossible {
