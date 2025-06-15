@@ -241,13 +241,17 @@ pub fn main(
     ip_translated: Ipv4Addr,
     remote_port: u16,
     tls_config: Arc<ServerConfig>,
+    read_write_timeous_ms: Option<u64>,
 ) {
-    //// set read/write timeout
-    // let timeout_duration = Duration::from_secs(30);
-    // let _ = client_raw_stream.set_read_timeout(Some(timeout_duration));
-    // let _ = client_raw_stream.set_write_timeout(Some(timeout_duration));
-    // let _ = remote_stream.set_read_timeout(Some(timeout_duration));
-    // let _ = remote_stream.set_write_timeout(Some(timeout_duration));
+    //// timeout: client
+
+    let read_write_timeout_ms = match read_write_timeous_ms {
+        None => None,
+        Some(v) => Some(Duration::from_millis(v)),
+    };
+
+    let _ = client_raw_stream.set_read_timeout(read_write_timeout_ms);
+    let _ = client_raw_stream.set_write_timeout(read_write_timeout_ms);
 
     //// tls
 
@@ -290,6 +294,11 @@ pub fn main(
     }
 
     let mut remote_stream: TcpStream = socket.into();
+
+    //// timeout: remote
+
+    let _ = remote_stream.set_read_timeout(read_write_timeout_ms);
+    let _ = remote_stream.set_write_timeout(read_write_timeout_ms);
 
     //// make streams nonblocking
 

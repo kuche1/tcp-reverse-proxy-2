@@ -24,6 +24,10 @@ pub struct Args {
     /// Key file (example privkey.pem)
     #[arg(long)]
     pub keyfile: String,
+
+    /// Read/write timeout
+    #[arg(long)]
+    pub read_write_timeout_ms: Option<u64>,
 }
 
 pub fn main() -> Args {

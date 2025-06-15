@@ -81,7 +81,13 @@ fn main() {
         let tls_config = tls_config.clone();
 
         thread::spawn(move || {
-            handle_client::main(stream, ip_translated, args.remote_port, tls_config)
+            handle_client::main(
+                stream,
+                ip_translated,
+                args.remote_port,
+                tls_config,
+                args.read_write_timeout_ms,
+            )
         });
     }
 }
