@@ -225,22 +225,21 @@ pub fn main(
 
     //// forward data
 
-    let mut client_buffer = [0u8; 8192];
-    let mut remote_buffer = [0u8; 8192];
+    let mut data_buffer = [0u8; 8192];
     let mut client_closed = false;
     let mut remote_closed = false;
 
     while !client_closed || !remote_closed {
         // client -> remote
         if !client_closed {
-            match client_stream.read(&mut client_buffer) {
+            match client_stream.read(&mut data_buffer) {
                 Ok(0) => {
                     client_closed = true;
                     let _ = remote_stream.shutdown(Shutdown::Write);
                 }
                 Ok(n) => {
                     // TODO and what if we write only half of the data ?
-                    if let Err(e) = remote_stream.write_all(&client_buffer[..n]) {
+                    if let Err(e) = remote_stream.write_all(&data_buffer[..n]) {
                         if e.kind() != io::ErrorKind::WouldBlock {
                             eprintln!("remote write error -> {}", e);
                             break;
@@ -258,13 +257,13 @@ pub fn main(
 
         // remote -> client
         if !remote_closed {
-            match remote_stream.read(&mut remote_buffer) {
+            match remote_stream.read(&mut data_buffer) {
                 Ok(0) => {
                     remote_closed = true;
                     let _ = client_stream.sock.shutdown(Shutdown::Write);
                 }
                 Ok(n) => {
-                    if let Err(e) = client_stream.write_all(&remote_buffer[..n]) {
+                    if let Err(e) = client_stream.write_all(&data_buffer[..n]) {
                         // TODO and what if we write only half of the data ?
                         if e.kind() != io::ErrorKind::WouldBlock {
                             eprintln!("client write error -> {}", e);
