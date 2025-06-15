@@ -147,12 +147,21 @@ use std::thread;
 //     //     let _ = remote_to_client.join();
 // }
 
+//// adsfsdfXTREWC#$WFC#
+use std::io::ErrorKind;
+use std::time::Duration;
+
 pub fn main(
     mut client_stream: TcpStream,
-    ip_translated: Ipv4Addr,
-    remote_port: u16,
+    _ip_translated: Ipv4Addr,
+    _remote_port: u16,
     tls_config: Arc<ServerConfig>,
 ) {
+    // Set timeouts before using the stream
+    let timeout_duration = Duration::from_secs(30);
+    let _ = client_stream.set_read_timeout(Some(timeout_duration));
+    let _ = client_stream.set_write_timeout(Some(timeout_duration));
+
     // Create TLS connection
     let mut server_conn = match ServerConnection::new(tls_config) {
         Ok(conn) => conn,
@@ -168,9 +177,6 @@ pub fn main(
         return;
     }
 
-    // Create TLS stream after successful handshake
-    let mut tls_stream = rustls::Stream::new(&mut server_conn, &mut client_stream);
-
     // Connect to backend server
     let mut backend = match TcpStream::connect("127.0.0.1:32850") {
         Ok(stream) => stream,
@@ -180,72 +186,108 @@ pub fn main(
         }
     };
 
-    // Bidirectional data transfer
-    let mut client_buffer = [0u8; 2048];
-    let mut backend_buffer = [0u8; 2048];
+    // Set backend timeouts
+    let _ = backend.set_read_timeout(Some(timeout_duration));
+    let _ = backend.set_write_timeout(Some(timeout_duration));
 
-    loop {
+    // Set both streams to non-blocking mode
+    if let Err(e) = client_stream.set_nonblocking(true) {
+        eprintln!("Failed to set client nonblocking: {}", e);
+        return;
+    }
+    if let Err(e) = backend.set_nonblocking(true) {
+        eprintln!("Failed to set backend nonblocking: {}", e);
+        return;
+    }
+
+    // Bidirectional data transfer
+    let mut client_buffer = [0u8; 8192];
+    let mut backend_buffer = [0u8; 8192];
+    let mut client_closed = false;
+    let mut backend_closed = false;
+
+    while !client_closed || !backend_closed {
         // Client -> Backend
-        match tls_stream.read(&mut client_buffer) {
-            Ok(0) => break, // EOF
-            Ok(n) => {
-                if let Err(e) = backend.write_all(&client_buffer[..n]) {
-                    eprintln!("Backend write error: {}", e);
+        if !client_closed {
+            // Create a new TLS stream for each operation to limit borrow scope
+            let mut tls_stream = rustls::Stream::new(&mut server_conn, &mut client_stream);
+
+            match tls_stream.read(&mut client_buffer) {
+                Ok(0) => {
+                    client_closed = true;
+                    let _ = backend.shutdown(Shutdown::Write);
+                }
+                Ok(n) => {
+                    if let Err(e) = backend.write_all(&client_buffer[..n]) {
+                        if e.kind() != ErrorKind::WouldBlock {
+                            eprintln!("Backend write error: {}", e);
+                            break;
+                        }
+                    }
+                }
+                Err(e) if e.kind() == ErrorKind::WouldBlock => {}
+                Err(e) => {
+                    eprintln!("Client read error: {}", e);
                     break;
                 }
             }
-            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                // No data available, continue to next operation
-            }
-            Err(e) => {
-                eprintln!("Client read error: {}", e);
-                break;
-            }
+
+            // tls_stream goes out of scope here, releasing the borrow
         }
 
         // Backend -> Client
-        match backend.read(&mut backend_buffer) {
-            Ok(0) => break, // EOF
-            Ok(n) => {
-                if let Err(e) = tls_stream.write_all(&backend_buffer[..n]) {
-                    eprintln!("Client write error: {}", e);
+        if !backend_closed {
+            // Create a new TLS stream for each operation to limit borrow scope
+            let mut tls_stream = rustls::Stream::new(&mut server_conn, &mut client_stream);
+
+            match backend.read(&mut backend_buffer) {
+                Ok(0) => {
+                    backend_closed = true;
+                    // Use the client_stream directly since TLS stream is out of scope
+                    let _ = client_stream.shutdown(Shutdown::Write);
+                }
+                Ok(n) => {
+                    if let Err(e) = tls_stream.write_all(&backend_buffer[..n]) {
+                        if e.kind() != ErrorKind::WouldBlock {
+                            eprintln!("Client write error: {}", e);
+                            break;
+                        }
+                    }
+                    if let Err(e) = tls_stream.flush() {
+                        eprintln!("Flush error: {}", e);
+                        break;
+                    }
+                }
+                Err(e) if e.kind() == ErrorKind::WouldBlock => {}
+                Err(e) => {
+                    eprintln!("Backend read error: {}", e);
                     break;
                 }
             }
-            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                // No data available, continue to next operation
-            }
-            Err(e) => {
-                eprintln!("Backend read error: {}", e);
-                break;
-            }
+
+            // tls_stream goes out of scope here, releasing the borrow
         }
 
-        // Flush TLS stream
-        if let Err(e) = tls_stream.flush() {
-            eprintln!("Flush error: {}", e);
-            break;
-        }
+        // Short sleep to prevent busy waiting
+        std::thread::sleep(Duration::from_millis(10));
     }
 
     // Graceful shutdown sequence
     println!("Initiating graceful shutdown...");
 
-    // 1. Send TLS close_notify alert
-    server_conn.send_close_notify(); // Queue the close notification
-
-    // Actually send the notification
+    // Send TLS close_notify alert
+    server_conn.send_close_notify();
     if let Err(e) = server_conn.complete_io(&mut client_stream) {
         eprintln!("Warning: failed to send TLS close_notify: {}", e);
     }
 
-    // 2. Shutdown backend connection
-    if let Err(e) = backend.shutdown(std::net::Shutdown::Both) {
+    // Shutdown backend connection
+    if let Err(e) = backend.shutdown(Shutdown::Both) {
         eprintln!("Backend shutdown error: {}", e);
     }
 
-    // 3. Shutdown client connection
-    if let Err(e) = client_stream.shutdown(std::net::Shutdown::Both) {
+    // Shutdown client connection
+    if let Err(e) = client_stream.shutdown(Shutdown::Both) {
         eprintln!("Client shutdown error: {}", e);
     }
 
