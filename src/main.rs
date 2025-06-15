@@ -71,6 +71,7 @@ fn main() {
 
     //// load tls config
 
+    // TODO hardcoded path
     let tls_config = load_tls_config("cert.pem", "privkey.pem")
         .expect("something wrong with loading the tls config");
 
