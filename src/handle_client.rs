@@ -21,12 +21,16 @@ pub async fn main(
 ) {
     //// FAWEIPDUCF*EYNCQ&F#YQC&H$FNW&C*FYG$W*GFT$W
 
+    println!("1");
+
     // Load certificate chain
     let cert_file = File::open(HARDCODED_CERT_FILE).expect("Cannot open certificate file");
     let cert_reader = &mut BufReader::new(cert_file);
     let cert_chain: Vec<CertificateDer<'static>> = certs(cert_reader)
         .map(|res| res.expect("Failed to parse certificate"))
         .collect();
+
+    println!("2");
 
     // Load private key (PKCS8)
     let key_file = File::open(HARDCODED_KEY_FILE).expect("Cannot open key file");
@@ -35,18 +39,27 @@ pub async fn main(
         .map(|res| res.expect("Failed to parse private key"))
         .collect();
 
+    println!("3");
+
     let private_key_pkcs8 = keys.pop().expect("No private key found");
     let private_key = PrivateKeyDer::Pkcs8(private_key_pkcs8);
+
+    println!("4");
 
     let config = ServerConfig::builder()
         .with_no_client_auth()
         .with_single_cert(cert_chain, private_key)
         .expect("Invalid cert or key");
 
+    println!("5");
+
     let acceptor = TlsAcceptor::from(Arc::new(config));
 
-    client_stream.set_nonblocking(true).unwrap();
-    let client_stream = tokio::net::TcpStream::from_std(client_stream).unwrap();
+    client_stream
+        .set_nonblocking(true)
+        .expect("could not make blocking");
+    let client_stream =
+        tokio::net::TcpStream::from_std(client_stream).expect("could not convert stream");
 
     let client_stream = acceptor.accept(client_stream).await.unwrap();
 
