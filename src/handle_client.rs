@@ -162,16 +162,16 @@ pub fn main(
         }
     };
 
-    // Perform TLS handshake FIRST without creating tls_stream
+    // Perform TLS handshake
     if let Err(e) = server_conn.complete_io(&mut client_stream) {
         eprintln!("TLS handshake failed: {}", e);
         return;
     }
 
-    // NOW create the TLS stream after handshake is complete
+    // Create TLS stream after successful handshake
     let mut tls_stream = rustls::Stream::new(&mut server_conn, &mut client_stream);
 
-    // Connect to backend server (unencrypted)
+    // Connect to backend server
     let mut backend = match TcpStream::connect("127.0.0.1:32850") {
         Ok(stream) => stream,
         Err(e) => {
@@ -194,6 +194,9 @@ pub fn main(
                     break;
                 }
             }
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                // No data available, continue to next operation
+            }
             Err(e) => {
                 eprintln!("Client read error: {}", e);
                 break;
@@ -209,6 +212,9 @@ pub fn main(
                     break;
                 }
             }
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                // No data available, continue to next operation
+            }
             Err(e) => {
                 eprintln!("Backend read error: {}", e);
                 break;
@@ -222,5 +228,26 @@ pub fn main(
         }
     }
 
-    println!("Connection closed");
+    // Graceful shutdown sequence
+    println!("Initiating graceful shutdown...");
+
+    // 1. Send TLS close_notify alert
+    server_conn.send_close_notify(); // Queue the close notification
+
+    // Actually send the notification
+    if let Err(e) = server_conn.complete_io(&mut client_stream) {
+        eprintln!("Warning: failed to send TLS close_notify: {}", e);
+    }
+
+    // 2. Shutdown backend connection
+    if let Err(e) = backend.shutdown(std::net::Shutdown::Both) {
+        eprintln!("Backend shutdown error: {}", e);
+    }
+
+    // 3. Shutdown client connection
+    if let Err(e) = client_stream.shutdown(std::net::Shutdown::Both) {
+        eprintln!("Client shutdown error: {}", e);
+    }
+
+    println!("Connection closed gracefully");
 }
