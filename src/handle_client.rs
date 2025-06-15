@@ -368,6 +368,7 @@ pub fn main(
         // break: if connection falls apart
         {
             //// I don't even know any more
+            //// I'm getting extremely inconsistent results
             //// I think that the server I'm using for testing has blocked me
 
             let client_to_remote_impossible = client_read_impossible || remote_write_impossible;
