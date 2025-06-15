@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr};
 
 // TODO rename to IpTranslator
-pub struct FakeIpGenerator {
+pub struct IpTranslator {
     ip_emergency: u32, // used when out of IPs
     ip_last_used: u32,
     ip_last_available: u32,
@@ -10,11 +10,11 @@ pub struct FakeIpGenerator {
     ip_map: HashMap<IpAddr, Ipv4Addr>,
 }
 
-impl FakeIpGenerator {
+impl IpTranslator {
     pub fn new() -> Self {
         let ip = (127 << 24) | (0 << 16) | (0 << 8) | (1 << 0);
 
-        FakeIpGenerator {
+        IpTranslator {
             ip_emergency: ip,
             ip_last_used: ip,
             ip_last_available: (127 << 24) | (255 << 16) | (255 << 8) | (254 << 0), // 127.255.255.255 is broadcast
@@ -39,7 +39,7 @@ impl FakeIpGenerator {
         Ipv4Addr::from(ip_u32)
     }
 
-    pub fn get(&mut self, original_ip: IpAddr) -> Ipv4Addr {
+    pub fn translate(&mut self, original_ip: IpAddr) -> Ipv4Addr {
         match self.ip_map.get(&original_ip) {
             Some(v) => return *v,
             None => {}

@@ -1,6 +1,8 @@
 mod cmdline;
-mod fake_ip;
+mod ip_translator;
 mod log;
+
+use crate::ip_translator::*;
 
 use std::io::{Read, Write};
 use std::net::TcpListener;
@@ -13,9 +15,9 @@ fn main() -> std::io::Result<()> {
     let args = cmdline::main();
     println!("{:?}", args);
 
-    //// create fake ip giver
+    //// create ip translator
 
-    let mut ip_generator = fake_ip::FakeIpGenerator::new();
+    let mut ip_translator = IpTranslator::new();
 
     //// bind
 
@@ -51,9 +53,9 @@ fn main() -> std::io::Result<()> {
 
         println!("new connection from {}", ip);
 
-        let ip_faked = ip_generator.get(ip);
+        let ip_translated = ip_translator.translate(ip);
 
-        println!("use fake ip {}", ip_faked);
+        println!("use translated ip {}", ip_translated);
 
         // echo server
         let mut buffer = [0; 512];
