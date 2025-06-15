@@ -49,11 +49,11 @@ fn main() -> std::io::Result<()> {
         };
 
         // TODO do not use `?`
-        let ip = stream.peer_addr()?.ip();
+        let ip_original = stream.peer_addr()?.ip();
 
-        println!("new connection from {}", ip);
+        println!("new connection from {}", ip_original);
 
-        let ip_translated = ip_translator.translate(ip);
+        let ip_translated = ip_translator.translate(ip_original);
 
         println!("use translated ip {}", ip_translated);
 
