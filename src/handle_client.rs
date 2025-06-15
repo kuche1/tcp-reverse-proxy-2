@@ -362,6 +362,13 @@ pub fn main(
             }
         }
 
+        // the remote has nothing more to send to the client
+        if remote_read_impossible {
+            if data_remote_to_client_end <= 0 {
+                break;
+            }
+        }
+
         stream_write(
             &mut remote_stream,
             &mut remote_write_impossible,
