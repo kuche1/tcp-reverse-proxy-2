@@ -11,8 +11,11 @@ pub struct Args {
 
     /// Port to bind to
     #[arg(long)]
-    pub bind_port: u16
+    pub bind_port: u16,
 
+    /// Server port
+    #[arg(long)]
+    pub server_port: u16,
     //// TODO delete all of this
     //     /// At what hour the restart is going to occur, for example 15 for 15:00
     //     #[arg(short, long, default_value_t = 4)]
@@ -46,24 +49,24 @@ pub struct Args {
 pub fn main() -> Args {
     let args = Args::parse();
 
-//     if args.restart_at >= 24 {
-//         log::err(
-//             &args.error_folder,
-//             &format!(
-//                 "invalid hour `{}`, needs to be less than 24",
-//                 args.restart_at
-//             ),
-//         );
-//         panic!();
-//     }
-// 
-//     if args.restart_at == 0 {
-//         log::err(
-//             &args.error_folder,
-//             "restarting at midnight is not supported, sorry",
-//         );
-//         panic!();
-//     }
+    //     if args.restart_at >= 24 {
+    //         log::err(
+    //             &args.error_folder,
+    //             &format!(
+    //                 "invalid hour `{}`, needs to be less than 24",
+    //                 args.restart_at
+    //             ),
+    //         );
+    //         panic!();
+    //     }
+    //
+    //     if args.restart_at == 0 {
+    //         log::err(
+    //             &args.error_folder,
+    //             "restarting at midnight is not supported, sorry",
+    //         );
+    //         panic!();
+    //     }
 
     args
 }
