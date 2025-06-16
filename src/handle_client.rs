@@ -351,35 +351,35 @@ pub fn main(
     let mut last_activity = Instant::now();
 
     loop {
-        // break: if connection falls apart
-        {
-            //// I don't even know any more
-            //// I'm getting extremely inconsistent results
-            //// I think that the server I'm using for testing has blocked me
-
-            let client_to_remote_impossible = client_read_impossible || remote_write_impossible;
-            let remote_to_client_impossible = remote_read_impossible || client_write_impossible;
-
-            if client_to_remote_impossible && remote_to_client_impossible {
-                // if client_to_remote_impossible || remote_to_client_impossible {
-                break;
-            }
-
-            // // client(read) -> remote(write)
-            // // remote(read) -> client(write)
-            // if client_write_impossible {
-            //     break;
-            // }
-            // if remote_read_impossible {
-            //     break;
-            // }
-            // if remote_write_impossible {
-            //     break;
-            // }
-            // if client_read_impossible {
-            //     break;
-            // }
-        }
+        //         // break: if connection falls apart
+        //         {
+        //             //// I don't even know any more
+        //             //// I'm getting extremely inconsistent results
+        //             //// I think that the server I'm using for testing has blocked me
+        //
+        //             let client_to_remote_impossible = client_read_impossible || remote_write_impossible;
+        //             let remote_to_client_impossible = remote_read_impossible || client_write_impossible;
+        //
+        //             if client_to_remote_impossible && remote_to_client_impossible {
+        //                 // if client_to_remote_impossible || remote_to_client_impossible {
+        //                 break;
+        //             }
+        //
+        //             // // client(read) -> remote(write)
+        //             // // remote(read) -> client(write)
+        //             // if client_write_impossible {
+        //             //     break;
+        //             // }
+        //             // if remote_read_impossible {
+        //             //     break;
+        //             // }
+        //             // if remote_write_impossible {
+        //             //     break;
+        //             // }
+        //             // if client_read_impossible {
+        //             //     break;
+        //             // }
+        //         }
 
         // TODO if we could find a way to get rid of those 2, that would be awesome (might be easier than it seems)
         if data_client_to_remote_end > 0 {
@@ -452,10 +452,12 @@ pub fn main(
 
     //// TODO the flushing is not great, let's make sure all is flushed
 
-    //// flush: remote -> client
+    //// flush
 
-    while data_remote_to_client_end > 0 {
+    while (data_remote_to_client_end > 0) || (data_client_to_remote_end > 0) {
         let mut _any_work_done: bool = false;
+
+        // remote -> client
         stream_write(
             &mut client_stream,
             &mut client_write_impossible,
@@ -464,16 +466,8 @@ pub fn main(
             &mut data_remote_to_client_end,
             &mut _any_work_done,
         );
-    }
 
-    if let Err(e) = client_stream.flush() {
-        eprintln!("could not flush client -> {}", e);
-    }
-
-    //// flush: client -> remote
-
-    while data_client_to_remote_end > 0 {
-        let mut _any_work_done: bool = false;
+        // client -> remote
         stream_write(
             &mut remote_stream,
             &mut remote_write_impossible,
@@ -482,6 +476,12 @@ pub fn main(
             &mut data_client_to_remote_end,
             &mut _any_work_done,
         );
+
+        dbg!("flushing...");
+    }
+
+    if let Err(e) = client_stream.flush() {
+        eprintln!("could not flush client -> {}", e);
     }
 
     if let Err(e) = remote_stream.flush() {
