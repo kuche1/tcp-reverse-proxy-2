@@ -450,10 +450,9 @@ pub fn main(
 
     dbg!("main loop broken");
 
-    //// TODO the flushing is not great, let's make sure all is flushed
-
     //// flush
 
+    // TODO this sucks - in CAN get stuck
     while (data_remote_to_client_end > 0) || (data_client_to_remote_end > 0) {
         let mut _any_work_done: bool = false;
 
